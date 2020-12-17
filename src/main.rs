@@ -31,7 +31,7 @@ enum TileType {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Tet {
+struct Piece {
     tet_type: Tetrominoes,
     rotation: u8,
     x: usize,
@@ -40,10 +40,7 @@ struct Tet {
 
 fn plot_tet(
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    tet_type: Tetrominoes,
-    rotation: u8,
-    tet_x: usize,
-    tet_y: usize,
+    piece: Piece,
     clear: bool,
 ) {
     // if clear is true, then set the TileType to blank for the tet at the
@@ -55,35 +52,40 @@ fn plot_tet(
     } else {
         new_type = TileType::Tet;
     }
-    match tet_type {
+    match piece.tet_type {
         Tetrominoes::I => {
-            match rotation {
+            match piece.rotation {
                 0 => {
-                    board[tet_x][tet_y + 1] = new_type;
-                    board[tet_x + 1][tet_y + 1] = new_type;
-                    board[tet_x + 2][tet_y + 1] = new_type;
-                    board[tet_x + 3][tet_y + 1] = new_type;
+                    board[piece.x][piece.y + 1] = new_type;
+                    board[piece.x + 1][piece.y + 1] = new_type;
+                    board[piece.x + 2][piece.y + 1] = new_type;
+                    board[piece.x + 3][piece.y + 1] = new_type;
                 }
                 1 => {
-                    board[tet_x + 2][tet_y] = new_type;
-                    board[tet_x + 2][tet_y + 1] = new_type;
-                    board[tet_x + 2][tet_y + 2] = new_type;
-                    board[tet_x + 2][tet_y + 3] = new_type;
+                    board[piece.x + 2][piece.y] = new_type;
+                    board[piece.x + 2][piece.y + 1] = new_type;
+                    board[piece.x + 2][piece.y + 2] = new_type;
+                    board[piece.x + 2][piece.y + 3] = new_type;
                 }
                 2 => {
-                    board[tet_x][tet_y + 2] = new_type;
-                    board[tet_x + 1][tet_y + 2] = new_type;
-                    board[tet_x + 2][tet_y + 2] = new_type;
-                    board[tet_x + 3][tet_y + 2] = new_type;
+                    board[piece.x][piece.y + 2] = new_type;
+                    board[piece.x + 1][piece.y + 2] = new_type;
+                    board[piece.x + 2][piece.y + 2] = new_type;
+                    board[piece.x + 3][piece.y + 2] = new_type;
                 }
                 _ => {
-                    // 3,   make this an enum
-                    board[tet_x + 1][tet_y] = new_type;
-                    board[tet_x + 1][tet_y + 1] = new_type;
-                    board[tet_x + 1][tet_y + 2] = new_type;
-                    board[tet_x + 1][tet_y + 3] = new_type;
+                    board[piece.x + 1][piece.y] = new_type;
+                    board[piece.x + 1][piece.y + 1] = new_type;
+                    board[piece.x + 1][piece.y + 2] = new_type;
+                    board[piece.x + 1][piece.y + 3] = new_type;
                 }
             }
+        }
+        Tetrominoes::O => {
+            board[piece.x][piece.y] = new_type;
+            board[piece.x + 1][piece.y] = new_type;
+            board[piece.x][piece.y + 1] = new_type;
+            board[piece.x + 1][piece.y + 1] = new_type;
         }
         _ => (),
     }
@@ -91,50 +93,57 @@ fn plot_tet(
 
 fn move_tet_left(
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    tet_type: Tetrominoes,
-    rotation: u8,
-    tet_x: &mut usize,
-    tet_y: usize,
+    piece: &mut Piece,
 ) {
     // Check if move left is possible.
     // If yes, then first clear current position.
     //
-    match tet_type {
+    let x = (*piece).x;
+    let y = (*piece).y;
+    match piece.tet_type {
         Tetrominoes::I => {
-            match rotation {
+            match (*piece).rotation {
                 0 => {
-                    if board[*tet_x - 1][tet_y + 1] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x -= 1;
+                    if board[x - 1][y + 1] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).x -= 1;
                     }
                 }
                 1 => {
-                    if board[*tet_x + 1][tet_y] == TileType::Blank
-                        && board[*tet_x + 1][tet_y + 1] == TileType::Blank
-                        && board[*tet_x + 1][tet_y + 2] == TileType::Blank
-                        && board[*tet_x + 1][tet_y + 3] == TileType::Blank
+                    if board[x + 1][y] == TileType::Blank
+                        && board[x + 1][y + 1] == TileType::Blank
+                        && board[x + 1][y + 2] == TileType::Blank
+                        && board[x + 1][y + 3] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x -= 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).x -= 1;
                     }
                 }
                 2 => {
-                    if board[*tet_x - 1][tet_y + 2] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x -= 1;
+                    if board[x - 1][y + 2] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).x -= 1;
                     }
                 }
                 _ => {
                     // 3,   make this an enum
-                    if board[*tet_x][tet_y] == TileType::Blank
-                        && board[*tet_x][tet_y + 1] == TileType::Blank
-                        && board[*tet_x][tet_y + 2] == TileType::Blank
-                        && board[*tet_x][tet_y + 3] == TileType::Blank
+                    if board[x][y] == TileType::Blank
+                        && board[x][y + 1] == TileType::Blank
+                        && board[x][y + 2] == TileType::Blank
+                        && board[x][y + 3] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x -= 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).x -= 1;
                     }
                 }
+            }
+        }
+        Tetrominoes::O => {
+            if board[x - 1][y] == TileType::Blank
+                && board[x - 1][y + 1] == TileType::Blank
+            {
+                plot_tet(board, *piece, true);
+                (*piece).x -= 1;
             }
         }
         _ => (),
@@ -142,50 +151,57 @@ fn move_tet_left(
 }
 fn move_tet_right(
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    tet_type: Tetrominoes,
-    rotation: u8,
-    tet_x: &mut usize,
-    tet_y: usize,
+    piece: &mut Piece,
 ) {
     // Check if move left is possible.
     // If yes, then first clear current position.
     //
-    match tet_type {
+    let x = (*piece).x;
+    let y = (*piece).y;
+    match piece.tet_type {
         Tetrominoes::I => {
-            match rotation {
+            match piece.rotation {
                 0 => {
-                    if board[*tet_x + 4][tet_y + 1] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x += 1;
+                    if board[x + 4][y + 1] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).x += 1;
                     }
                 }
                 1 => {
-                    if board[*tet_x + 3][tet_y] == TileType::Blank
-                        && board[*tet_x + 3][tet_y + 1] == TileType::Blank
-                        && board[*tet_x + 3][tet_y + 2] == TileType::Blank
-                        && board[*tet_x + 3][tet_y + 3] == TileType::Blank
+                    if board[x + 3][y] == TileType::Blank
+                        && board[x + 3][y + 1] == TileType::Blank
+                        && board[x + 3][y + 2] == TileType::Blank
+                        && board[x + 3][y + 3] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x += 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).x += 1;
                     }
                 }
                 2 => {
-                    if board[*tet_x + 4][tet_y + 2] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x += 1;
+                    if board[x + 4][y + 2] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).x += 1;
                     }
                 }
                 _ => {
                     // 3,   make this an enum
-                    if board[*tet_x + 2][tet_y] == TileType::Blank
-                        && board[*tet_x + 2][tet_y + 1] == TileType::Blank
-                        && board[*tet_x + 2][tet_y + 2] == TileType::Blank
-                        && board[*tet_x + 2][tet_y + 3] == TileType::Blank
+                    if board[x + 2][y] == TileType::Blank
+                        && board[x + 2][y + 1] == TileType::Blank
+                        && board[x + 2][y + 2] == TileType::Blank
+                        && board[x + 2][y + 3] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, *tet_x, tet_y, true);
-                        *tet_x += 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).x += 1;
                     }
                 }
+            }
+        }
+        Tetrominoes::O => {
+            if board[x + 2][y] == TileType::Blank
+                && board[x + 2][y + 1] == TileType::Blank
+            {
+                plot_tet(board, *piece, true);
+                (*piece).x += 1;
             }
         }
         _ => (),
@@ -194,47 +210,54 @@ fn move_tet_right(
 
 fn move_tet_down(
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    tet_type: Tetrominoes,
-    rotation: u8,
-    tet_x: usize,
-    tet_y: &mut usize,
+    piece: &mut Piece,
 ) {
-    match tet_type {
+    let x = (*piece).x;
+    let y = (*piece).y;
+    match piece.tet_type {
         Tetrominoes::I => {
-            match rotation {
+            match piece.rotation {
                 0 => {
-                    if board[tet_x][*tet_y + 2] == TileType::Blank
-                        && board[tet_x + 1][*tet_y + 2] == TileType::Blank
-                        && board[tet_x + 2][*tet_y + 2] == TileType::Blank
-                        && board[tet_x + 3][*tet_y + 2] == TileType::Blank
+                    if board[x][y + 2] == TileType::Blank
+                        && board[x + 1][y + 2] == TileType::Blank
+                        && board[x + 2][y + 2] == TileType::Blank
+                        && board[x + 3][y + 2] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, tet_x, *tet_y, true);
-                        *tet_y += 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).y += 1;
                     }
                 }
                 1 => {
-                    if board[tet_x + 2][*tet_y + 4] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, tet_x, *tet_y, true);
-                        *tet_y += 1;
+                    if board[x + 2][y + 4] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).y += 1;
                     }
                 }
                 2 => {
-                    if board[tet_x][*tet_y + 3] == TileType::Blank
-                        && board[tet_x + 1][*tet_y + 3] == TileType::Blank
-                        && board[tet_x + 2][*tet_y + 3] == TileType::Blank
-                        && board[tet_x + 3][*tet_y + 3] == TileType::Blank
+                    if board[x][y + 3] == TileType::Blank
+                        && board[x + 1][y + 3] == TileType::Blank
+                        && board[x + 2][y + 3] == TileType::Blank
+                        && board[x + 3][y + 3] == TileType::Blank
                     {
-                        plot_tet(board, tet_type, rotation, tet_x, *tet_y, true);
-                        *tet_y += 1;
+                        plot_tet(board, *piece, true);
+                        (*piece).y += 1;
                     }
                 }
                 _ => {
                     // 3,   make this an enum
-                    if board[tet_x + 1][*tet_y + 4] == TileType::Blank {
-                        plot_tet(board, tet_type, rotation, tet_x, *tet_y, true);
-                        *tet_y += 1;
+                    if board[x + 1][y + 4] == TileType::Blank {
+                        plot_tet(board, *piece, true);
+                        (*piece).y += 1;
                     }
                 }
+            }
+        }
+        Tetrominoes::O => {
+            if board[x][y + 2] == TileType::Blank
+                && board[x + 1][y + 2] == TileType::Blank
+            {
+                plot_tet(board, *piece, true);
+                (*piece).y += 1;
             }
         }
         _ => (),
@@ -242,21 +265,21 @@ fn move_tet_down(
 }
 
 struct MainState {
-    rotation: u8,
-    tet_type: Tetrominoes,
-    tet_x: usize,
-    tet_y: usize,
     board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    piece: Piece,
 }
 
 impl MainState {
     fn new(_ctx: &mut Context) -> GameResult<MainState> {
-        let s = MainState {
-            rotation: 0,
+        let piece = Piece {
             tet_type: Tetrominoes::I,
-            tet_x: 6,
-            tet_y: 4,
+            rotation: 0,
+            x: 6,
+            y: 4,
+        };
+        let s = MainState {
             board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
+            piece: piece,
         };
         Ok(s)
     }
@@ -287,7 +310,7 @@ impl EventHandler for MainState {
         keymod: KeyMods,
         repeat: bool,
     ) {
-        if repeat == false {
+        if !repeat {
             println!(
                 "Key pressed: {:?}, modifier {:?}, repeat: {}",
                 keycode, keymod, repeat
@@ -299,47 +322,64 @@ impl EventHandler for MainState {
                     // Erase current location
                     plot_tet(
                         &mut self.board,
-                        self.tet_type,
-                        self.rotation,
-                        self.tet_x,
-                        self.tet_y,
+                        self.piece,
                         true,
                     );
-                    self.rotation += 1;
-                    if self.rotation > 3 {
-                        self.rotation = 0;
+                    self.piece.rotation += 1;
+                    if self.piece.rotation > 3 {
+                        self.piece.rotation = 0;
                     }
                     // plot of new location will happen when we draw the board
                 }
                 input::keyboard::KeyCode::A => {
                     move_tet_left(
                         &mut self.board,
-                        self.tet_type,
-                        self.rotation,
-                        &mut self.tet_x,
-                        self.tet_y,
+                        &mut self.piece,
                     );
                 }
                 input::keyboard::KeyCode::D => {
                     move_tet_right(
                         &mut self.board,
-                        self.tet_type,
-                        self.rotation,
-                        &mut self.tet_x,
-                        self.tet_y,
+                        &mut self.piece,
                     );
                 }
                 input::keyboard::KeyCode::S => {
                     move_tet_down(
                         &mut self.board,
-                        self.tet_type,
-                        self.rotation,
-                        self.tet_x,
-                        &mut self.tet_y,
+                        &mut self.piece,
                     );
                 }
+                // Begin debug commands
                 input::keyboard::KeyCode::Z => {
                     println!("{:#?}", self.board);
+                }
+                input::keyboard::KeyCode::I => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::I;
+                }
+                input::keyboard::KeyCode::O => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::O;
+                }
+                input::keyboard::KeyCode::P => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::T;
+                }
+                input::keyboard::KeyCode::J => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::J;
+                }
+                input::keyboard::KeyCode::K => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::L;
+                }
+                input::keyboard::KeyCode::L => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::S;
+                }
+                input::keyboard::KeyCode::U => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.tet_type = Tetrominoes::Z;
                 }
                 _ => (),
             }
@@ -350,11 +390,11 @@ impl EventHandler for MainState {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Text
-        let text = graphics::Text::new(format!("Rotation:{}", self.rotation));
+        let text = graphics::Text::new(format!("Rotation:{}", self.piece.rotation));
         graphics::draw(ctx, &text, (Point2::new(20.0, 20.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("tet_x:{}", self.tet_x));
+        let text = graphics::Text::new(format!("x:{}", self.piece.x));
         graphics::draw(ctx, &text, (Point2::new(20.0, 40.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("tet_y:{}", self.tet_y));
+        let text = graphics::Text::new(format!("y:{}", self.piece.y));
         graphics::draw(ctx, &text, (Point2::new(20.0, 60.0), graphics::WHITE))?;
 
         // The board grid
@@ -385,19 +425,10 @@ impl EventHandler for MainState {
             self.board[x][20] = TileType::Border;
         }
 
-        plot_tet(
-            &mut self.board,
-            self.tet_type,
-            self.rotation,
-            self.tet_x,
-            self.tet_y,
-            false,
-        );
+        plot_tet( &mut self.board, self.piece, false);
 
-        let mut py = 0;
-        for y in (0..440).step_by(20) {
-            let mut px = 0;
-            for x in (200..480).step_by(20) {
+        for (py, y) in (0..440).step_by(20).enumerate() {
+            for (px, x) in (200..480).step_by(20).enumerate() {
                 let x = x as f32;
                 let y = y as f32;
 
@@ -424,39 +455,9 @@ impl EventHandler for MainState {
                     }
                     _ => (),
                 }
-                px += 1;
             }
-            py += 1;
         }
 
-        // Figure out where our piece is
-        /*
-        match self.tet_type {
-            Tetrominoes::I => {
-                if self.rotation == 0 { // ----
-                }
-                else if self.rotation == 1 { //  |
-                    self.board[self.p_x + 2][self.p_y] = true;
-                    self.board[self.p_x + 2][self.p_y + 1] = true;
-                    self.board[self.p_x + 2][self.p_y + 2] = true;
-                    self.board[self.p_x + 2][self.p_y + 3] = true;
-                }
-                else if self.rotation == 2 { // ____
-                    self.board[self.p_x][self.p_y + 2] = true;
-                    self.board[self.p_x + 1][self.p_y + 2] = true;
-                    self.board[self.p_x + 2][self.p_y + 2] = true;
-                    self.board[self.p_x + 3][self.p_y + 2] = true;
-                }
-                else  /* self.rotation == 3 */ { // |
-                    self.board[self.p_x + 1][self.p_y] = true;
-                    self.board[self.p_x + 1][self.p_y + 1] = true;
-                    self.board[self.p_x + 1][self.p_y + 2] = true;
-                    self.board[self.p_x + 1][self.p_y + 3] = true;
-                }
-            },
-            _ => (),
-        }
-        */
         let m = mb.build(ctx)?;
         graphics::draw(ctx, &m, DrawParam::new())?;
 
