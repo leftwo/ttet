@@ -38,11 +38,7 @@ struct Piece {
     y: usize,
 }
 
-fn plot_tet(
-    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    piece: Piece,
-    clear: bool,
-) {
+fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece, clear: bool) {
     // if clear is true, then set the TileType to blank for the tet at the
     // specified rotation.
 
@@ -53,76 +49,172 @@ fn plot_tet(
         new_type = TileType::Tet;
     }
     match piece.tet_type {
-        Tetrominoes::I => {
-            match piece.rotation {
-                0 => {
-                    board[piece.x][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 2][piece.y + 1] = new_type;
-                    board[piece.x + 3][piece.y + 1] = new_type;
-                }
-                1 => {
-                    board[piece.x + 2][piece.y] = new_type;
-                    board[piece.x + 2][piece.y + 1] = new_type;
-                    board[piece.x + 2][piece.y + 2] = new_type;
-                    board[piece.x + 2][piece.y + 3] = new_type;
-                }
-                2 => {
-                    board[piece.x][piece.y + 2] = new_type;
-                    board[piece.x + 1][piece.y + 2] = new_type;
-                    board[piece.x + 2][piece.y + 2] = new_type;
-                    board[piece.x + 3][piece.y + 2] = new_type;
-                }
-                _ => {
-                    board[piece.x + 1][piece.y] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 2] = new_type;
-                    board[piece.x + 1][piece.y + 3] = new_type;
-                }
+        Tetrominoes::I => match piece.rotation {
+            0 => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 3][piece.y + 1] = new_type;
             }
-        }
+            1 => {
+                board[piece.x + 2][piece.y] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y + 3] = new_type;
+            }
+            2 => {
+                board[piece.x][piece.y + 2] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+                board[piece.x + 3][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 1][piece.y + 3] = new_type;
+            }
+        },
         Tetrominoes::O => {
             board[piece.x][piece.y] = new_type;
             board[piece.x + 1][piece.y] = new_type;
             board[piece.x][piece.y + 1] = new_type;
             board[piece.x + 1][piece.y + 1] = new_type;
         }
-        Tetrominoes::T => {
-            match piece.rotation {
-                0 => {
-                    board[piece.x + 1][piece.y] = new_type;
-                    board[piece.x][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 2][piece.y + 1] = new_type;
-                }
-                1 => {
-                    board[piece.x + 1][piece.y] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 2] = new_type;
-                    board[piece.x + 2][piece.y + 1] = new_type;
-                }
-                2 => {
-                    board[piece.x][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 2][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 2] = new_type;
-                }
-                _ => {
-                    board[piece.x][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y] = new_type;
-                    board[piece.x + 1][piece.y + 1] = new_type;
-                    board[piece.x + 1][piece.y + 2] = new_type;
-                }
+        Tetrominoes::T => match piece.rotation {
+            0 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
             }
-        }
-        _ => (),
+            1 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+            }
+            2 => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+        },
+        Tetrominoes::J => match piece.rotation {
+            0 => {
+                board[piece.x][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+            }
+            1 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y] = new_type;
+            }
+            2 => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x][piece.y + 2] = new_type;
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+        },
+        Tetrominoes::L => match piece.rotation {
+            0 => {
+                board[piece.x + 2][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+            }
+            1 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+            }
+            2 => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x][piece.y] = new_type;
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+        },
+        Tetrominoes::S => match piece.rotation {
+            0 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 2][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+            }
+            1 => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+            }
+            2 => {
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x][piece.y + 2] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+        },
+        Tetrominoes::Z => match piece.rotation {
+            0 => {
+                board[piece.x][piece.y] = new_type;
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+            }
+            1 => {
+                board[piece.x + 2][piece.y] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 2][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+            }
+            2 => {
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 2] = new_type;
+                board[piece.x + 2][piece.y + 2] = new_type;
+            }
+            _ => {
+                board[piece.x + 1][piece.y] = new_type;
+                board[piece.x][piece.y + 1] = new_type;
+                board[piece.x + 1][piece.y + 1] = new_type;
+                board[piece.x][piece.y + 2] = new_type;
+            }
+        },
     }
 }
 
-fn move_tet_left(
-    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    piece: &mut Piece,
-) {
+fn move_tet_left(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
     // Check if move left is possible.
     // If yes, then first clear current position.
     //
@@ -167,58 +259,176 @@ fn move_tet_left(
             }
         }
         Tetrominoes::O => {
-            if board[x - 1][y] == TileType::Blank
-                && board[x - 1][y + 1] == TileType::Blank
-            {
+            if board[x - 1][y] == TileType::Blank && board[x - 1][y + 1] == TileType::Blank {
                 plot_tet(board, *piece, true);
                 (*piece).x -= 1;
             }
         }
-        Tetrominoes::T => {
-            match (*piece).rotation {
-                0 => {
-                    if board[x][y] == TileType::Blank
-                        && board[x - 1][y + 1] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x -= 1;
-                    }
-                }
-                1 => {
-                    if board[x][y] == TileType::Blank
-                        && board[x][y + 1] == TileType::Blank
-                        && board[x][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x -= 1;
-                    }
-                }
-                2 => {
-                    if board[x - 1][y + 1] == TileType::Blank
-                        && board[x][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x -= 1;
-                    }
-                }
-                _ => {
-                    if board[x][y] == TileType::Blank
-                        && board[x - 1][y + 1] == TileType::Blank
-                        && board[x][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x -= 1;
-                    }
+        Tetrominoes::T => match (*piece).rotation {
+            0 => {
+                if board[x][y] == TileType::Blank && board[x - 1][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
                 }
             }
-        }
-        _ => (),
+            1 => {
+                if board[x][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            2 => {
+                if board[x - 1][y + 1] == TileType::Blank && board[x][y + 2] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            _ => {
+                if board[x][y] == TileType::Blank
+                    && board[x - 1][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+        },
+        Tetrominoes::J => match (*piece).rotation {
+            0 => {
+                if board[x - 1][y] == TileType::Blank && board[x - 1][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            1 => {
+                if board[x][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            2 => {
+                if board[x - 1][y + 1] == TileType::Blank && board[x + 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            _ => {
+                if board[x][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x - 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+        },
+        Tetrominoes::L => match (*piece).rotation {
+            0 => {
+                if board[x + 1][y] == TileType::Blank && board[x - 1][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            1 => {
+                if board[x][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            2 => {
+                if board[x - 1][y + 1] == TileType::Blank && board[x - 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            _ => {
+                if board[x - 1][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+        },
+        Tetrominoes::S => match (*piece).rotation {
+            0 => {
+                if board[x][y] == TileType::Blank && board[x - 1][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            1 => {
+                if board[x][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            2 => {
+                if board[x][y + 1] == TileType::Blank && board[x - 1][y + 2] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            _ => {
+                if board[x - 1][y] == TileType::Blank
+                    && board[x - 1][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+        },
+        Tetrominoes::Z => match (*piece).rotation {
+            0 => {
+                if board[x - 1][y] == TileType::Blank && board[x][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            1 => {
+                if board[x + 1][y] == TileType::Blank
+                    && board[x][y + 1] == TileType::Blank
+                    && board[x][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            2 => {
+                if board[x - 1][y + 1] == TileType::Blank && board[x][y + 2] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+            _ => {
+                if board[x][y] == TileType::Blank
+                    && board[x - 1][y + 1] == TileType::Blank
+                    && board[x - 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x -= 1;
+                }
+            }
+        },
     }
 }
-fn move_tet_right(
-    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    piece: &mut Piece,
-) {
+fn move_tet_right(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
     // Check if move left is possible.
     // If yes, then first clear current position.
     //
@@ -263,59 +473,180 @@ fn move_tet_right(
             }
         }
         Tetrominoes::O => {
-            if board[x + 2][y] == TileType::Blank
-                && board[x + 2][y + 1] == TileType::Blank
-            {
+            if board[x + 2][y] == TileType::Blank && board[x + 2][y + 1] == TileType::Blank {
                 plot_tet(board, *piece, true);
                 (*piece).x += 1;
             }
         }
-        Tetrominoes::T => {
-            match (*piece).rotation {
-                0 => {
-                    if board[x + 2][y] == TileType::Blank
-                        && board[x + 3][y + 1] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x += 1;
-                    }
-                }
-                1 => {
-                    if board[x + 2][y] == TileType::Blank
-                        && board[x + 3][y + 1] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x += 1;
-                    }
-                }
-                2 => {
-                    if board[x + 3][y + 1] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x += 1;
-                    }
-                }
-                _ => {
-                    if board[x + 2][y] == TileType::Blank
-                        && board[x + 2][y + 1] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).x += 1;
-                    }
+        Tetrominoes::T => match (*piece).rotation {
+            0 => {
+                if board[x + 2][y] == TileType::Blank && board[x + 3][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
                 }
             }
-        }
-        _ => (),
+            1 => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 3][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            2 => {
+                if board[x + 3][y + 1] == TileType::Blank && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            _ => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+        },
+        Tetrominoes::J => match (*piece).rotation {
+            0 => {
+                if board[x + 1][y] == TileType::Blank && board[x + 3][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            1 => {
+                if board[x + 3][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            2 => {
+                if board[x + 3][y + 1] == TileType::Blank && board[x + 3][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            _ => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+        },
+        Tetrominoes::L => match (*piece).rotation {
+            0 => {
+                if board[x + 3][y] == TileType::Blank && board[x + 3][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            1 => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 3][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            2 => {
+                if board[x + 3][y + 1] == TileType::Blank && board[x + 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            _ => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+        },
+        Tetrominoes::S => match (*piece).rotation {
+            0 => {
+                if board[x + 3][y] == TileType::Blank && board[x + 2][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            1 => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 3][y + 1] == TileType::Blank
+                    && board[x + 3][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            2 => {
+                if board[x + 3][y + 1] == TileType::Blank && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            _ => {
+                if board[x + 1][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+        },
+        Tetrominoes::Z => match (*piece).rotation {
+            0 => {
+                if board[x + 2][y] == TileType::Blank && board[x + 3][y + 1] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            1 => {
+                if board[x + 3][y] == TileType::Blank
+                    && board[x + 3][y + 1] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            2 => {
+                if board[x + 2][y + 1] == TileType::Blank && board[x + 3][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+            _ => {
+                if board[x + 2][y] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).x += 1;
+                }
+            }
+        },
     }
 }
 
-fn move_tet_down(
-    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-    piece: &mut Piece,
-) {
+fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
     let x = (*piece).x;
     let y = (*piece).y;
     match piece.tet_type {
@@ -357,52 +688,176 @@ fn move_tet_down(
             }
         }
         Tetrominoes::O => {
-            if board[x][y + 2] == TileType::Blank
-                && board[x + 1][y + 2] == TileType::Blank
-            {
+            if board[x][y + 2] == TileType::Blank && board[x + 1][y + 2] == TileType::Blank {
                 plot_tet(board, *piece, true);
                 (*piece).y += 1;
             }
         }
-        Tetrominoes::T => {
-            match piece.rotation {
-                0 => {
-                    if board[x][y + 2] == TileType::Blank
-                        && board[x + 1][y + 2] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).y += 1;
-                    }
-                }
-                1 => {
-                    if board[x + 1][y + 3] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).y += 1;
-                    }
-                }
-                2 => {
-                    if board[x][y + 2] == TileType::Blank
-                        && board[x + 1][y + 3] == TileType::Blank
-                        && board[x + 2][y + 2] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).y += 1;
-                    }
-                }
-                _ => {
-                    if board[x][y + 2] == TileType::Blank
-                        && board[x + 1][y + 3] == TileType::Blank
-                    {
-                        plot_tet(board, *piece, true);
-                        (*piece).y += 1;
-                    }
+        Tetrominoes::T => match piece.rotation {
+            0 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
                 }
             }
-        }
-        _ => (),
+            1 => {
+                if board[x + 1][y + 3] == TileType::Blank && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            2 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 3] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            _ => {
+                if board[x][y + 2] == TileType::Blank && board[x + 1][y + 3] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+        },
+        Tetrominoes::J => match piece.rotation {
+            0 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            1 => {
+                if board[x + 1][y + 3] == TileType::Blank && board[x + 2][y + 1] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            2 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 3] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            _ => {
+                if board[x][y + 3] == TileType::Blank && board[x + 1][y + 3] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+        },
+        Tetrominoes::L => match piece.rotation {
+            0 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            1 => {
+                if board[x + 1][y + 3] == TileType::Blank && board[x + 2][y + 3] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            2 => {
+                if board[x][y + 3] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            _ => {
+                if board[x][y + 1] == TileType::Blank && board[x + 1][y + 3] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+        },
+        Tetrominoes::S => match piece.rotation {
+            0 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 1] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            1 => {
+                if board[x + 1][y + 2] == TileType::Blank && board[x + 2][y + 3] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            2 => {
+                if board[x][y + 3] == TileType::Blank
+                    && board[x + 1][y + 3] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            _ => {
+                if board[x][y + 2] == TileType::Blank && board[x + 1][y + 3] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+        },
+        Tetrominoes::Z => match piece.rotation {
+            0 => {
+                if board[x][y + 1] == TileType::Blank
+                    && board[x + 1][y + 2] == TileType::Blank
+                    && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            1 => {
+                if board[x + 1][y + 3] == TileType::Blank && board[x + 2][y + 2] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            2 => {
+                if board[x][y + 2] == TileType::Blank
+                    && board[x + 1][y + 3] == TileType::Blank
+                    && board[x + 2][y + 3] == TileType::Blank
+                {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+            _ => {
+                if board[x][y + 3] == TileType::Blank && board[x + 1][y + 2] == TileType::Blank {
+                    plot_tet(board, *piece, true);
+                    (*piece).y += 1;
+                }
+            }
+        },
     }
 }
 
@@ -462,11 +917,7 @@ impl EventHandler for MainState {
                 input::keyboard::KeyCode::W => {
                     // Check for rotation being legit
                     // Erase current location
-                    plot_tet(
-                        &mut self.board,
-                        self.piece,
-                        true,
-                    );
+                    plot_tet(&mut self.board, self.piece, true);
                     self.piece.rotation += 1;
                     if self.piece.rotation > 3 {
                         self.piece.rotation = 0;
@@ -474,26 +925,21 @@ impl EventHandler for MainState {
                     // plot of new location will happen when we draw the board
                 }
                 input::keyboard::KeyCode::A => {
-                    move_tet_left(
-                        &mut self.board,
-                        &mut self.piece,
-                    );
+                    move_tet_left(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::D => {
-                    move_tet_right(
-                        &mut self.board,
-                        &mut self.piece,
-                    );
+                    move_tet_right(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::S => {
-                    move_tet_down(
-                        &mut self.board,
-                        &mut self.piece,
-                    );
+                    move_tet_down(&mut self.board, &mut self.piece);
                 }
                 // Begin debug commands
                 input::keyboard::KeyCode::Z => {
                     println!("{:#?}", self.board);
+                }
+                input::keyboard::KeyCode::X => {
+                    plot_tet(&mut self.board, self.piece, true);
+                    self.piece.y -= 1;
                 }
                 input::keyboard::KeyCode::I => {
                     plot_tet(&mut self.board, self.piece, true);
@@ -567,7 +1013,7 @@ impl EventHandler for MainState {
             self.board[x][20] = TileType::Border;
         }
 
-        plot_tet( &mut self.board, self.piece, false);
+        plot_tet(&mut self.board, self.piece, false);
 
         for (py, y) in (0..440).step_by(20).enumerate() {
             for (px, x) in (200..480).step_by(20).enumerate() {
