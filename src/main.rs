@@ -4,7 +4,7 @@ use ggez::event::{quit, run, EventHandler, KeyCode, KeyMods};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
 use ggez::nalgebra::Point2;
-// use ggez::timer;
+use ggez::timer;
 use ggez::input;
 use ggez::{Context, GameResult};
 
@@ -684,7 +684,7 @@ fn move_tet_right(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &m
     }
 }
 
-fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
+fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) -> bool {
     let x = (*piece).x;
     let y = (*piece).y;
     let mut ptc: Vec<(usize, usize)> = Vec::with_capacity(4);
@@ -820,7 +820,9 @@ fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mu
     if check_points(*board, ptc) {
         plot_tet(board, *piece, TileType::Blank);
         (*piece).y += 1;
+        return true;
     }
+    false
 }
 
 struct MainState {
@@ -851,14 +853,12 @@ impl EventHandler for MainState {
         if input::keyboard::is_key_pressed(ctx, KeyCode::Q) {
             println!("quit");
         }
-        /*
-                while timer::check_update_time(ctx, DESIRED_FPS) {
-                self.tet_y = self.tet_y + 20.0;
-                if self.tet_y > 380.0 {
-                    self.tet_y = 0.0;
-                }
-                }
-        */
+        while timer::check_update_time(ctx, DESIRED_FPS) {
+            if !move_tet_down(&mut self.board, &mut self.piece) {
+                println!("Can't move down");
+                tet_to_base(&mut self.board, &mut self.piece);
+            }
+        }
         Ok(())
     }
 
@@ -896,7 +896,10 @@ impl EventHandler for MainState {
                     move_tet_right(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::S => {
-                    move_tet_down(&mut self.board, &mut self.piece);
+                    if !move_tet_down(&mut self.board, &mut self.piece) {
+                        println!("Can't move down");
+                        tet_to_base(&mut self.board, &mut self.piece);
+                    }
                 }
                 // Begin debug commands
                 input::keyboard::KeyCode::Z => {
