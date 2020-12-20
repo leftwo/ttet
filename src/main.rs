@@ -223,16 +223,12 @@ fn rotate_check(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) ->
     false
 }
 
-fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece, clear: bool) {
-    // if clear is true, then set the TileType to blank for the tet at the
-    // specified rotation.
-
-    let new_type: TileType;
-    if clear {
-        new_type = TileType::Blank;
-    } else {
-        new_type = TileType::Tet;
-    }
+fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+            piece: Piece,
+            new_type: TileType) {
+    // Set the location on the board to the given type.
+    // We use the piece location and rotation to determine which
+    // squares we need to update.
     match piece.tet_type {
         Tetrominoes::I => match piece.rotation {
             0 => {
@@ -399,6 +395,12 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece, c
     }
 }
 
+fn tet_to_base(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
+    plot_tet(board, *piece, TileType::Base);
+    (*piece).x = 5;
+    (*piece).y = 0;
+}
+
 fn move_tet_left(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
     // Check if move left is possible.
     // If yes, then first clear current position.
@@ -535,7 +537,7 @@ fn move_tet_left(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mu
         },
     }
     if check_points(*board, ptc) {
-        plot_tet(board, *piece, true);
+        plot_tet(board, *piece, TileType::Blank);
         (*piece).x -= 1;
     }
 }
@@ -677,7 +679,7 @@ fn move_tet_right(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &m
         },
     }
     if check_points(*board, ptc) {
-        plot_tet(board, *piece, true);
+        plot_tet(board, *piece, TileType::Blank);
         (*piece).x += 1;
     }
 }
@@ -816,7 +818,7 @@ fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mu
         },
     }
     if check_points(*board, ptc) {
-        plot_tet(board, *piece, true);
+        plot_tet(board, *piece, TileType::Blank);
         (*piece).y += 1;
     }
 }
@@ -879,7 +881,7 @@ impl EventHandler for MainState {
                     // Erase current location
 
                     if rotate_check(self.board, self.piece) {
-                        plot_tet(&mut self.board, self.piece, true);
+                        plot_tet(&mut self.board, self.piece, TileType::Blank);
                         self.piece.rotation += 1;
                         if self.piece.rotation > 3 {
                             self.piece.rotation = 0;
@@ -900,36 +902,39 @@ impl EventHandler for MainState {
                 input::keyboard::KeyCode::Z => {
                     println!("{:#?}", self.board);
                 }
+                input::keyboard::KeyCode::C => {
+                    tet_to_base(&mut self.board, &mut self.piece);
+                }
                 input::keyboard::KeyCode::X => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.y -= 1;
                 }
                 input::keyboard::KeyCode::I => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::I;
                 }
                 input::keyboard::KeyCode::O => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::O;
                 }
                 input::keyboard::KeyCode::P => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::T;
                 }
                 input::keyboard::KeyCode::J => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::J;
                 }
                 input::keyboard::KeyCode::K => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::L;
                 }
                 input::keyboard::KeyCode::L => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::S;
                 }
                 input::keyboard::KeyCode::U => {
-                    plot_tet(&mut self.board, self.piece, true);
+                    plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.tet_type = Tetrominoes::Z;
                 }
                 _ => (),
@@ -976,8 +981,9 @@ impl EventHandler for MainState {
             self.board[x][20] = TileType::Border;
         }
 
-        plot_tet(&mut self.board, self.piece, false);
+        plot_tet(&mut self.board, self.piece, TileType::Tet);
 
+        // Plot border and base squares
         for (py, y) in (0..440).step_by(20).enumerate() {
             for (px, x) in (200..480).step_by(20).enumerate() {
                 let x = x as f32;
@@ -1002,6 +1008,16 @@ impl EventHandler for MainState {
                             ],
                             16.0,
                             Color::new(0.0, 1.0, 1.0, 1.0),
+                        )?;
+                    }
+                    TileType::Base => {
+                        mb.line(
+                            &[
+                                Point2::new(x + 10.0, y + 2.0),
+                                Point2::new(x + 10.0, y + 18.0),
+                            ],
+                            16.0,
+                            Color::new(0.0, 1.0, 0.5, 1.0),
                         )?;
                     }
                     _ => (),
