@@ -7,6 +7,7 @@ use ggez::nalgebra::Point2;
 use ggez::timer;
 use ggez::input;
 use ggez::{Context, GameResult};
+use rand::{ distributions::{Distribution, Standard}, Rng, };
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Tetrominoes {
@@ -19,7 +20,27 @@ enum Tetrominoes {
     Z,
 }
 
-const BOARD_HEIGHT: usize = 22;
+// From stackoverflow:
+// https://stackoverflow.com/questions/48490049
+// Pick a random Tetrominoe from our enum
+impl Distribution<Tetrominoes> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Tetrominoes {
+        match rng.gen_range(0, 7) {
+            0 => Tetrominoes::I,
+            1 => Tetrominoes::O,
+            2 => Tetrominoes::T,
+            3 => Tetrominoes::J,
+            4 => Tetrominoes::L,
+            5 => Tetrominoes::S,
+            _ => Tetrominoes::Z,
+        }
+    }
+}
+
+// The visible board size is 10x20. We have additional space in the
+// array for reasons that involve how we plot the tetrominoes and
+// translate their x,y location when plotting on the board.
+const BOARD_HEIGHT: usize = 26;
 const BOARD_WIDTH: usize = 14;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -28,6 +49,7 @@ enum TileType {
     Tet,
     Base,
     Blank,
+    Filled,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -39,10 +61,10 @@ struct Piece {
 }
 
 fn check_points(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], ptc: Vec<(usize, usize)>) -> bool {
-    println!("checking points");
     for pt in ptc.iter() {
-        println!("checking point: {:#?}", pt);
-        if board[pt.0][pt.1] == TileType::Base || board[pt.0][pt.1] == TileType::Border {
+        if board[pt.0][pt.1] == TileType::Base
+            || board[pt.0][pt.1] == TileType::Border
+            || board[pt.0][pt.1] == TileType::Filled {
             return false;
         }
     }
@@ -397,7 +419,15 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 
 fn tet_to_base(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
     plot_tet(board, *piece, TileType::Base);
-    (*piece).x = 5;
+    (*piece).tet_type = rand::random();
+    if (*piece).tet_type == Tetrominoes::I {
+        (*piece).rotation = 1;
+        (*piece).x = 0;
+    }
+    else {
+        (*piece).rotation = 0;
+        (*piece).x = 2;
+    }
     (*piece).y = 0;
 }
 
@@ -707,7 +737,6 @@ fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mu
                     ptc.push((x + 3, y + 3));
                 }
                 _ => {
-                    // 3,   make this an enum
                     ptc.push((x + 1, y + 4));
                 }
             }
@@ -833,7 +862,7 @@ struct MainState {
 impl MainState {
     fn new(_ctx: &mut Context) -> GameResult<MainState> {
         let piece = Piece {
-            tet_type: Tetrominoes::I,
+            tet_type: rand::random(),
             rotation: 0,
             x: 6,
             y: 4,
@@ -897,7 +926,6 @@ impl EventHandler for MainState {
                 }
                 input::keyboard::KeyCode::S => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
-                        println!("Can't move down");
                         tet_to_base(&mut self.board, &mut self.piece);
                     }
                 }
@@ -914,31 +942,15 @@ impl EventHandler for MainState {
                 }
                 input::keyboard::KeyCode::I => {
                     plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::I;
-                }
-                input::keyboard::KeyCode::O => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::O;
-                }
-                input::keyboard::KeyCode::P => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::T;
-                }
-                input::keyboard::KeyCode::J => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::J;
-                }
-                input::keyboard::KeyCode::K => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::L;
-                }
-                input::keyboard::KeyCode::L => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::S;
-                }
-                input::keyboard::KeyCode::U => {
-                    plot_tet(&mut self.board, self.piece, TileType::Blank);
-                    self.piece.tet_type = Tetrominoes::Z;
+                    self.piece.tet_type = match self.piece.tet_type {
+                        Tetrominoes::I => Tetrominoes::O,
+                        Tetrominoes::O => Tetrominoes::T,
+                        Tetrominoes::T => Tetrominoes::J,
+                        Tetrominoes::J => Tetrominoes::L,
+                        Tetrominoes::L => Tetrominoes::S,
+                        Tetrominoes::S => Tetrominoes::Z,
+                        _ => Tetrominoes::I,
+                    };
                 }
                 _ => (),
             }
@@ -957,8 +969,10 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &text, (Point2::new(20.0, 60.0), graphics::WHITE))?;
 
         // The board grid
+        //
+        // Horizional lines
         let mb = &mut graphics::MeshBuilder::new();
-        for y in (0..=440).step_by(20) {
+        for y in (0..=520).step_by(20) {
             let y = y as f32;
             mb.line(
                 &[Point2::new(200.0, y), Point2::new(480.0, y)],
@@ -966,32 +980,40 @@ impl EventHandler for MainState {
                 Color::new(0.9, 0.9, 0.9, 4.0),
             )?;
         }
+        // Draw the vertical lines
         for x in (200..=480).step_by(20) {
             let x = x as f32;
             mb.line(
-                &[Point2::new(x, 0.0), Point2::new(x, 440.0)],
+                &[Point2::new(x, 0.0), Point2::new(x, 520.0)],
                 2.0,
                 Color::new(0.9, 0.9, 0.9, 4.0),
             )?;
         }
 
+        // Draw the border
         let fill = Color::new(1.0, 0.0, 0.0, 1.0);
-        for y in 0..21 {
+        for y in 0..BOARD_HEIGHT - 1 {
             self.board[1][y] = TileType::Border;
             self.board[12][y] = TileType::Border;
         }
-        for x in 1..12 {
-            self.board[x][20] = TileType::Border;
+        for x in 1..BOARD_WIDTH - 2 {
+            self.board[x][BOARD_HEIGHT - 2] = TileType::Border;
         }
 
         plot_tet(&mut self.board, self.piece, TileType::Tet);
 
-        // Plot border and base squares
-        for (py, y) in (0..440).step_by(20).enumerate() {
+        let mut full_lines: Vec<usize> = Vec::with_capacity(4);
+        // Draw lines for board
+        for (py, y) in (0..520).step_by(20).enumerate() {
+                let mut row_count = 0;
             for (px, x) in (200..480).step_by(20).enumerate() {
                 let x = x as f32;
                 let y = y as f32;
 
+                // XXX We should draw the border once at the start
+                // of the program and not have to re-draw it each time.
+                // Assuming I can figure out how to leave drawings behind
+                // instead of wiping the screen each time.
                 match self.board[px][py] {
                     TileType::Border => {
                         mb.line(
@@ -1014,6 +1036,7 @@ impl EventHandler for MainState {
                         )?;
                     }
                     TileType::Base => {
+                        row_count += 1;
                         mb.line(
                             &[
                                 Point2::new(x + 10.0, y + 2.0),
@@ -1026,6 +1049,26 @@ impl EventHandler for MainState {
                     _ => (),
                 }
             }
+            if row_count >= 10 {
+                full_lines.push(py);
+                // redraw this as a blank, but only the actual
+                // squares that pieces can operate on.
+                for (px, x) in (200..460).step_by(20).enumerate() {
+                    let x = x as f32;
+                    let y = y as f32;
+                    if self.board[px][py] == TileType::Base {
+                        mb.line(
+                            &[
+                                Point2::new(x + 10.0, y + 2.0),
+                                Point2::new(x + 10.0, y + 18.0),
+                            ],
+                            16.0,
+                            Color::new(0.1, 0.2, 0.3, 1.0),
+                        )?;
+                        self.board[px][py] = TileType::Blank
+                    }
+                }
+            }
         }
 
         let m = mb.build(ctx)?;
@@ -1033,6 +1076,21 @@ impl EventHandler for MainState {
 
         // Finished drawing, show it all on the screen!
         graphics::present(ctx)?;
+
+        // If we cleared a row, then move down what was above it.
+        for fl in full_lines.iter() {
+            for md_y in (0..*fl).rev() {
+                println!("Move down line: {} ", md_y);
+                for md_x in 2..12 {
+                    self.board[md_x][md_y + 1] = self.board[md_x][md_y];
+                }
+                // Zero out the first line
+                for md_x in 2..12 {
+                    self.board[md_x][0] = TileType::Blank;
+                }
+            }
+        }
+
         Ok(())
     }
 }
