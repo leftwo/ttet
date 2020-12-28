@@ -49,7 +49,6 @@ enum TileType {
     Tet,
     Base,
     Blank,
-    Filled,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -76,21 +75,47 @@ enum BoardState {
     Paused,
 }
 
+// Debug function to print the board
+fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
+    for y in 0..BOARD_HEIGHT {
+        print!("[{:02}] ", y);
+        for x in 0..BOARD_WIDTH {
+            if board[x][y] == TileType::Base {
+                print!("B");
+            }
+            else if board[x][y] == TileType::Border {
+                print!("#");
+            } else if board[x][y] == TileType::Tet {
+                print!(".");
+            } else {
+                print!(" ");
+            }
+        }
+        println!("");
+    }
+}
+
+// Check a vector of points to see if a piece can be placed on
+// those places on the board.  Return true if it is possible,
+// false if it is not possible.
 fn check_points(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], ptc: Vec<(usize, usize)>) -> bool {
+    // print_board(board);
+    // print!("Check points");
     for pt in ptc.iter() {
+        // print!(" {},{}", pt.0, pt.1);
         if board[pt.0][pt.1] == TileType::Base
-            || board[pt.0][pt.1] == TileType::Border
-            || board[pt.0][pt.1] == TileType::Filled {
+            || board[pt.0][pt.1] == TileType::Border {
+            // println!(" no");
             return false;
         }
     }
+    // println!(" yes");
     true
 }
 
-// Check to see if, given the current board and our current
-// rotation, the squares for the next rotation are available to
-// "move" to.
-fn rotate_check(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) -> bool {
+// Check to see if the piece in the requested location and rotation
+// will fit on the given board.
+fn validate_move(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) -> bool {
     let x = piece.x;
     let y = piece.y;
 
@@ -100,57 +125,60 @@ fn rotate_check(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) ->
     match piece.tet_type {
         Tetrominoes::I => match piece.rotation {
             0 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-                ptc.push((x + 2, y + 3));
-            }
-            1 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-                ptc.push((x + 3, y + 2));
-            }
-            2 => {
-                ptc.push((x + 1, y));
-                ptc.push((x + 1, y + 1));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 1, y + 3));
-            }
-            _ => {
                 ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 2, y + 1));
                 ptc.push((x + 3, y + 1));
             }
+            1 => {
+                ptc.push((x + 2, y));
+                ptc.push((x + 2, y + 1));
+                ptc.push((x + 2, y + 2));
+                ptc.push((x + 2, y + 3));
+            }
+            2 => {
+                ptc.push((x, y + 2));
+                ptc.push((x + 1, y + 2));
+                ptc.push((x + 2, y + 2));
+                ptc.push((x + 3, y + 2));
+            }
+            _ => {
+                ptc.push((x + 1, y));
+                ptc.push((x + 1, y + 1));
+                ptc.push((x + 1, y + 2));
+                ptc.push((x + 1, y + 3));
+            }
         },
         Tetrominoes::O => {
-            return true;
+            ptc.push((x, y));
+            ptc.push((x + 1, y));
+            ptc.push((x, y + 1));
+            ptc.push((x + 1, y + 1));
         }
         Tetrominoes::T => match piece.rotation {
             0 => {
                 ptc.push((x + 1, y));
+                ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
-                ptc.push((x + 1, y + 2));
                 ptc.push((x + 2, y + 1));
             }
             1 => {
-                ptc.push((x, y + 1));
+                ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
-                ptc.push((x + 2, y + 1));
                 ptc.push((x + 1, y + 2));
+                ptc.push((x + 2, y + 1));
             }
             2 => {
                 ptc.push((x, y + 1));
-                ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
+                ptc.push((x + 2, y + 1));
                 ptc.push((x + 1, y + 2));
             }
             _ => {
-                ptc.push((x + 1, y));
                 ptc.push((x, y + 1));
+                ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
-                ptc.push((x + 2, y + 1));
+                ptc.push((x + 1, y + 2));
             }
         },
         Tetrominoes::J => match piece.rotation {
@@ -181,80 +209,80 @@ fn rotate_check(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) ->
         },
         Tetrominoes::L => match piece.rotation {
             0 => {
+                ptc.push((x + 2, y));
+                ptc.push((x, y + 1));
+                ptc.push((x + 1, y + 1));
+                ptc.push((x + 2, y + 1));
+            }
+            1 => {
                 ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 1, y + 2));
                 ptc.push((x + 2, y + 2));
             }
-            1 => {
+            2 => {
                 ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 2, y + 1));
                 ptc.push((x, y + 2));
             }
-            2 => {
+            _ => {
                 ptc.push((x, y));
                 ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 1, y + 2));
-            }
-            _ => {
-                ptc.push((x + 2, y));
-                ptc.push((x, y + 1));
-                ptc.push((x + 1, y + 1));
-                ptc.push((x + 2, y + 1));
             }
         },
         Tetrominoes::S => match piece.rotation {
             0 => {
                 ptc.push((x + 1, y));
+                ptc.push((x + 2, y));
+                ptc.push((x, y + 1));
+                ptc.push((x + 1, y + 1));
+            }
+            1 => {
+                ptc.push((x + 1, y));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 2, y + 1));
                 ptc.push((x + 2, y + 2));
             }
-            1 => {
+            2 => {
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 2, y + 1));
                 ptc.push((x, y + 2));
                 ptc.push((x + 1, y + 2));
             }
-            2 => {
+            _ => {
                 ptc.push((x, y));
                 ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 1, y + 2));
-            }
-            _ => {
-                ptc.push((x + 1, y));
-                ptc.push((x + 2, y));
-                ptc.push((x, y + 1));
-                ptc.push((x + 1, y + 1));
             }
         },
         Tetrominoes::Z => match piece.rotation {
             0 => {
+                ptc.push((x, y));
+                ptc.push((x + 1, y));
+                ptc.push((x + 1, y + 1));
+                ptc.push((x + 2, y + 1));
+            }
+            1 => {
                 ptc.push((x + 2, y));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 2, y + 1));
                 ptc.push((x + 1, y + 2));
             }
-            1 => {
+            2 => {
                 ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x + 1, y + 2));
                 ptc.push((x + 2, y + 2));
             }
-            2 => {
+            _ => {
                 ptc.push((x + 1, y));
                 ptc.push((x, y + 1));
                 ptc.push((x + 1, y + 1));
                 ptc.push((x, y + 2));
-            }
-            _ => {
-                ptc.push((x, y));
-                ptc.push((x + 1, y));
-                ptc.push((x + 1, y + 1));
-                ptc.push((x + 2, y + 1));
             }
         },
     }
@@ -270,7 +298,6 @@ fn rotate_check(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) ->
 fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
             piece: Piece,
             new_type: TileType) {
-    // Set the location on the board to the given type.
     // We use the piece location and rotation to determine which
     // squares we need to update.
     match piece.tet_type {
@@ -479,436 +506,22 @@ fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece:
     }
     (*piece).y = 0;
 
+    // Check for game over! XXX
     res
 }
 
-fn move_tet_left(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
-    // Check if move left is possible.
-    // If yes, then first clear current position.
-    let x = (*piece).x;
-    let y = (*piece).y;
-
-    // For this and all the movement functions, we build a vector with
-    // all the points we need to verify are open before the move can happen.
-    // At the end of the match, we check to verify all of the needed points
-    // are valid.  Note that it's ok if a point is occupied by ourselves.
-    let mut ptc: Vec<(usize, usize)> = Vec::with_capacity(4);
-
-    // For checking, we only need to check points that are on the side we
-    // wish to move into.   We don't need to check points that we ourselves
-    // occupy.
-    match piece.tet_type {
-        Tetrominoes::I => {
-            match (*piece).rotation {
-                0 => {
-                    ptc.push((x - 1, y + 1));
-                }
-                1 => {
-                    ptc.push((x + 1,y));
-                    ptc.push((x + 1, y + 1));
-                    ptc.push((x + 1, y + 2));
-                    ptc.push((x + 1, y + 3));
-                }
-                2 => {
-                    ptc.push((x - 1, y + 2));
-                }
-                _ => {
-                    ptc.push((x ,y));
-                    ptc.push((x, y + 1));
-                    ptc.push((x, y + 2));
-                    ptc.push((x, y + 3));
-                }
-            }
-        }
-        Tetrominoes::O => {
-            ptc.push((x - 1, y));
-            ptc.push((x - 1, y + 1));
-        }
-        Tetrominoes::T => match (*piece).rotation {
-            0 => {
-                ptc.push((x, y));
-                ptc.push((x - 1, y + 1));
-            }
-            1 => {
-                ptc.push((x, y));
-                ptc.push((x, y + 1));
-                ptc.push((x, y + 2));
-            }
-            2 => {
-                ptc.push((x - 1, y + 1));
-                ptc.push((x, y + 2));
-            }
-            _ => {
-                ptc.push((x, y));
-                ptc.push((x - 1, y + 1));
-                ptc.push((x, y + 1));
-            }
-        },
-        Tetrominoes::J => match (*piece).rotation {
-            0 => {
-                ptc.push((x - 1, y));
-                ptc.push((x - 1, y + 1));
-            }
-            1 => {
-                ptc.push((x, y));
-                ptc.push((x, y + 1));
-                ptc.push((x, y + 2));
-            }
-            2 => {
-                ptc.push((x - 1, y + 1));
-                ptc.push((x + 1, y + 2));
-            }
-            _ => {
-                ptc.push((x, y));
-                ptc.push((x, y + 1));
-                ptc.push((x - 1, y + 2));
-            }
-        },
-        Tetrominoes::L => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 1, y));
-                ptc.push((x - 1, y + 1));
-            }
-            1 => {
-                ptc.push((x, y));
-                ptc.push((x, y + 1));
-                ptc.push((x, y + 2));
-            }
-            2 => {
-                ptc.push((x - 1, y + 1));
-                ptc.push((x - 1, y + 2));
-            }
-            _ => {
-                ptc.push((x - 1, y));
-                ptc.push((x, y + 1));
-                ptc.push((x, y + 2));
-            }
-        },
-        Tetrominoes::S => match (*piece).rotation {
-            0 => {
-                ptc.push((x, y));
-                ptc.push((x - 1, y + 1));
-            }
-            1 => {
-                ptc.push((x, y));
-                ptc.push((x, y + 1));
-                ptc.push((x + 1, y + 2));
-            }
-            2 => {
-                ptc.push((x, y + 1));
-                ptc.push((x - 1, y + 2));
-            }
-            _ => {
-                ptc.push((x - 1, y));
-                ptc.push((x - 1, y + 1));
-                ptc.push((x, y + 2));
-            }
-        },
-        Tetrominoes::Z => match (*piece).rotation {
-            0 => {
-                ptc.push((x - 1, y));
-                ptc.push((x, y + 1));
-            }
-            1 => {
-                ptc.push((x + 1, y));
-                ptc.push((x, y + 1));
-                ptc.push((x, y + 2));
-            }
-            2 => {
-                ptc.push((x - 1, y + 1));
-                ptc.push((x, y + 2));
-            }
-            _ => {
-                ptc.push((x, y));
-                ptc.push((x - 1, y + 1));
-                ptc.push((x - 1, y + 2));
-            }
-        },
-    }
-    if check_points(*board, ptc) {
-        plot_tet(board, *piece, TileType::Blank);
-        (*piece).x -= 1;
-    }
-}
-
-fn move_tet_right(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) {
-    // Check if move left is possible.
-    // If yes, then first clear current position.
-    let x = (*piece).x;
-    let y = (*piece).y;
-    let mut ptc: Vec<(usize, usize)> = Vec::with_capacity(4);
-    match piece.tet_type {
-        Tetrominoes::I => {
-            match piece.rotation {
-                0 => {
-                    ptc.push((x + 4, y + 1));
-                }
-                1 => {
-                    ptc.push((x + 3, y));
-                    ptc.push((x + 3, y + 1));
-                    ptc.push((x + 3, y + 2));
-                    ptc.push((x + 3, y + 3));
-                }
-                2 => {
-                    ptc.push((x + 4, y + 2));
-                }
-                _ => {
-                    // 3,   make this an enum
-                    ptc.push((x + 2, y));
-                    ptc.push((x + 2, y + 1));
-                    ptc.push((x + 2, y + 2));
-                    ptc.push((x + 2, y + 3));
-                }
-            }
-        }
-        Tetrominoes::O => {
-            ptc.push((x + 2, y));
-            ptc.push((x + 2, y + 1));
-        }
-        Tetrominoes::T => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 3, y + 1));
-            }
-            1 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-            2 => {
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-            _ => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-        },
-        Tetrominoes::J => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 1, y));
-                ptc.push((x + 3, y + 1));
-            }
-            1 => {
-                ptc.push((x + 3, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-            2 => {
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 3, y + 2));
-            }
-            _ => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-        },
-        Tetrominoes::L => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 3, y));
-                ptc.push((x + 3, y + 1));
-            }
-            1 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 3, y + 2));
-            }
-            2 => {
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 1, y + 2));
-            }
-            _ => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-        },
-        Tetrominoes::S => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 3, y));
-                ptc.push((x + 2, y + 1));
-            }
-            1 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 3, y + 2));
-            }
-            2 => {
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-            _ => {
-                ptc.push((x + 1, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-        },
-        Tetrominoes::Z => match (*piece).rotation {
-            0 => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 3, y + 1));
-            }
-            1 => {
-                ptc.push((x + 3, y));
-                ptc.push((x + 3, y + 1));
-                ptc.push((x + 2, y + 2));
-            }
-            2 => {
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 3, y + 2));
-            }
-            _ => {
-                ptc.push((x + 2, y));
-                ptc.push((x + 2, y + 1));
-                ptc.push((x + 1, y + 2));
-            }
-        },
-    }
-    if check_points(*board, ptc) {
-        plot_tet(board, *piece, TileType::Blank);
-        (*piece).x += 1;
-    }
-}
-
+// Try to move tet down.  If it works, then return true.
+// If the move is not valid, then return false.
 fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) -> bool {
-    let x = (*piece).x;
-    let y = (*piece).y;
-    let mut ptc: Vec<(usize, usize)> = Vec::with_capacity(4);
-    match piece.tet_type {
-        Tetrominoes::I => {
-            match piece.rotation {
-                0 => {
-                    ptc.push((x, y + 2));
-                    ptc.push((x + 1, y + 2));
-                    ptc.push((x + 2, y + 2));
-                    ptc.push((x + 3, y + 2));
-                }
-                1 => {
-                    ptc.push((x + 2, y + 4));
-                }
-                2 => {
-                    ptc.push((x, y + 3));
-                    ptc.push((x + 1, y + 3));
-                    ptc.push((x + 2, y + 3));
-                    ptc.push((x + 3, y + 3));
-                }
-                _ => {
-                    ptc.push((x + 1, y + 4));
-                }
-            }
-        }
-        Tetrominoes::O => {
-            ptc.push((x, y + 2));
-            ptc.push((x + 1, y + 2));
-        }
-        Tetrominoes::T => match piece.rotation {
-            0 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-            }
-            1 => {
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 2));
-            }
-            2 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 2));
-            }
-            _ => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 3));
-            }
-        },
-        Tetrominoes::J => match piece.rotation {
-            0 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-            }
-            1 => {
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 1));
-            }
-            2 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 3));
-            }
-            _ => {
-                ptc.push((x, y + 3));
-                ptc.push((x + 1, y + 3));
-            }
-        },
-        Tetrominoes::L => match piece.rotation {
-            0 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-            }
-            1 => {
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 3));
-            }
-            2 => {
-                ptc.push((x, y + 3));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-            }
-            _ => {
-                ptc.push((x, y + 1));
-                ptc.push((x + 1, y + 3));
-            }
-        },
-        Tetrominoes::S => match piece.rotation {
-            0 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 1));
-            }
-            1 => {
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 3));
-            }
-            2 => {
-                ptc.push((x, y + 3));
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 2));
-            }
-            _ => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 3));
-            }
-        },
-        Tetrominoes::Z => match piece.rotation {
-            0 => {
-                ptc.push((x, y + 1));
-                ptc.push((x + 1, y + 2));
-                ptc.push((x + 2, y + 2));
-            }
-            1 => {
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 2));
-            }
-            2 => {
-                ptc.push((x, y + 2));
-                ptc.push((x + 1, y + 3));
-                ptc.push((x + 2, y + 3));
-            }
-            _ => {
-                ptc.push((x, y + 3));
-                ptc.push((x + 1, y + 2));
-            }
-        },
-    }
-    if check_points(*board, ptc) {
+
+    (*piece).y += 1;
+    if validate_move(*board, *piece) {
+        (*piece).y -= 1;
         plot_tet(board, *piece, TileType::Blank);
         (*piece).y += 1;
         return true;
-    }
+    } // else
+    (*piece).y -= 1;
     false
 }
 
@@ -989,7 +602,7 @@ impl EventHandler for MainState {
                 self.board_state = BoardState::Moving;
             }
             else if self.board_state == BoardState::Paused {
-                println!("Paused");
+                ()
             }
             else if !move_tet_down(&mut self.board, &mut self.piece) {
                 println!("Piece has reached the bottom");
@@ -1010,30 +623,61 @@ impl EventHandler for MainState {
             match keycode {
                 input::keyboard::KeyCode::Q => quit(ctx),
 
+                input::keyboard::KeyCode::P => {
+                    if self.board_state == BoardState::Paused {
+                        self.board_state = BoardState::Moving;
+                    } else {
+                        self.board_state = BoardState::Paused;
+                    }
+                }
                 input::keyboard::KeyCode::W => {
                     // Check for rotation being legit
                     // Erase current location
 
-                    if rotate_check(self.board, self.piece) {
-                        plot_tet(&mut self.board, self.piece, TileType::Blank);
-                        self.piece.rotation += 1;
-                        if self.piece.rotation > 3 {
-                            self.piece.rotation = 0;
-                        }
+                    let original_rotation = self.piece.rotation;
+                    self.piece.rotation += 1;
+                    if self.piece.rotation > 3 {
+                        self.piece.rotation = 0;
                     }
-                    // plot of new location will happen when we draw the board
+                    if validate_move(self.board, self.piece) {
+                        let new_rotation = self.piece.rotation;
+                        self.piece.rotation = original_rotation;
+                        plot_tet(&mut self.board, self.piece, TileType::Blank);
+                        self.piece.rotation = new_rotation;
+                    }
+                    else {
+                        self.piece.rotation = original_rotation;
+                    }
                 }
                 input::keyboard::KeyCode::A => {
-                    move_tet_left(&mut self.board, &mut self.piece);
+                    self.piece.x -= 1;
+                    if validate_move(self.board, self.piece) {
+                        self.piece.x += 1;
+                        plot_tet(&mut self.board, self.piece, TileType::Blank);
+                        self.piece.x -= 1;
+                    } else {
+                        self.piece.x += 1;
+                    }
+                    // move_tet_left(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::D => {
-                    move_tet_right(&mut self.board, &mut self.piece);
+                    self.piece.x += 1;
+                    if validate_move(self.board, self.piece) {
+                        self.piece.x -= 1;
+                        plot_tet(&mut self.board, self.piece, TileType::Blank);
+                        self.piece.x += 1;
+                        // Move down successful
+                    } else {
+                        self.piece.x -= 1;
+                    }
+                    // move_tet_right(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::S => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
                         self.board_state = convert_and_check(&mut self.board,
                                                             &mut self.piece);
                     }
+
                 }
                 // Begin debug commands
                 input::keyboard::KeyCode::Z => {
