@@ -1,4 +1,3 @@
-// use cgmath;
 use ggez;
 use ggez::event::{quit, run, EventHandler, KeyCode, KeyMods};
 use ggez::graphics;
@@ -9,6 +8,8 @@ use ggez::input;
 use ggez::{Context, GameResult};
 use rand::{ distributions::{Distribution, Standard}, Rng, };
 
+// The seven different game pieces we use.  Their official name in Tetris
+// is "Tetrominoes".
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Tetrominoes {
     I,
@@ -20,9 +21,8 @@ enum Tetrominoes {
     Z,
 }
 
-// From stackoverflow:
-// https://stackoverflow.com/questions/48490049
 // Pick a random Tetrominoe from our enum
+// Modified from https://stackoverflow.com/questions/48490049
 impl Distribution<Tetrominoes> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Tetrominoes {
         match rng.gen_range(0, 7) {
@@ -43,6 +43,7 @@ impl Distribution<Tetrominoes> for Standard {
 const BOARD_HEIGHT: usize = 26;
 const BOARD_WIDTH: usize = 14;
 
+// Each board square
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TileType {
     Border,
@@ -61,18 +62,22 @@ struct Piece {
 
 // Board state is used to indicate the different states that the
 // board can be in during game play.
-// Moving is the normal sate of things, the player can rotate
+// Moving: The normal sate of things, the player can rotate
 // pieces, and pieces drop at every interval.
-// Clearing is when we hold the board for one interval during
+// Clearing: we hold the board for one interval during
 // which a completed row is blanked out.  At the end of Clearing
-// state, the pieces above fall to fill the gap created.
-// Paused is when the player has requested a pause, no falling
+// state, the pieces above a gap fall to fill the gap created.
+// Paused: The player has requested a pause, no falling
 // or rotation is allowed.
+// Over: The attempt to place a new piece at the top of the board
+// has failed, meaning there is a base piece preventing it, which
+// indicates the game is now over.
 #[derive(Debug, PartialEq)]
 enum BoardState {
     Moving,
     Clearing,
     Paused,
+    Over,
 }
 
 // Debug function to print the board
@@ -99,7 +104,6 @@ fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
 // those places on the board.  Return true if it is possible,
 // false if it is not possible.
 fn check_points(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], ptc: Vec<(usize, usize)>) -> bool {
-    // print_board(board);
     // print!("Check points");
     for pt in ptc.iter() {
         // print!(" {},{}", pt.0, pt.1);
@@ -469,14 +473,20 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 // Call this when the active piece has hit something below it and can move
 // down no further.  We convert the piece to base type, then we check to
 // see if any rows have been filled.
-// A filled row,   return BoardState::Clearing
-// No filled rows, return BoardState::Moving
+// A filled row,       return BoardState::Clearing
+// No filled rows,     return BoardState::Moving (but see below)
+//
+// If we don't clear rows, then we generate the next piece at the top of
+// the board.  If we are clearing, then don't generate the next piece.
+//
+// If we are not clearing rows, then it's possible that the placement of
+// the new piece will fail, in that case the tail call will end up
+// returning BoardState::Over
 fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) -> BoardState {
     // Redraw the piece as a "base" type
-    let mut res = BoardState::Moving;
-
     plot_tet(board, *piece, TileType::Base);
 
+    // See if there are any "full" rows.
     for y in (*piece).y..BOARD_HEIGHT - 2 {
         let mut row_count = 0;
         for x in 2..BOARD_WIDTH - 2 {
@@ -486,27 +496,39 @@ fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece:
         }
         if row_count == 10 {
             // We have at least one full row, go ahead
-            // and tell the caller we need to change
-            // state to clearing
+            // and tell the caller the new state.  We
+            // have nothing more to do here.
             println!("Found row {} is full", y);
-            res = BoardState::Clearing;
-            break;
+            return BoardState::Clearing;
         }
     }
 
-    // Get a new piece ready and put it up at the top.
+    // We can go ahead with placing a new piece now, return the
+    // result of this call
+    place_new_piece(board, piece)
+}
+
+// This starts a new piece moving down from the top of the
+// board.  We also check for game over if the new piece has
+// no empty squares to be placed in.
+fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) -> BoardState {
+    let mut res = BoardState::Moving;
+
     (*piece).tet_type = rand::random();
     if (*piece).tet_type == Tetrominoes::I {
         (*piece).rotation = 1;
-        (*piece).x = 0;
+        (*piece).y = 0;
     }
     else {
         (*piece).rotation = 0;
-        (*piece).x = 2;
+        (*piece).y = 2;
     }
-    (*piece).y = 0;
+    (*piece).x = 6;
 
-    // Check for game over! XXX
+    if !validate_move(*board, *piece) {
+        println!("Game Over");
+        res = BoardState::Over;
+    }
     res
 }
 
@@ -529,6 +551,7 @@ struct MainState {
     board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
     piece: Piece,
     board_state: BoardState,
+    score: u32,
 }
 
 impl MainState {
@@ -543,6 +566,7 @@ impl MainState {
             board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
             piece,
             board_state: BoardState::Moving,
+            score: 0,
         };
         Ok(s)
     }
@@ -556,57 +580,55 @@ impl EventHandler for MainState {
             println!("quit");
         }
         while timer::check_update_time(ctx, DESIRED_FPS) {
-            if self.board_state == BoardState::Clearing {
-                // Once we have done one cycle clear, we then resume
-                // part movement and drop down pieces above our cleared
-                // row(s)
+            match self.board_state {
+                BoardState::Clearing => {
+                    // Once we have done one cycle clear, we then resume
+                    // part movement and drop down pieces above our cleared
+                    // row(s)
 
-                println!("Cleared time elapsed, now drop");
+                    // Start from the bottom and work our way up.
+                    // The destination Y always starts at the highest valid
+                    // valid Y we can have pieces at.
+                    // We walk the array from the bottom up.
+                    let mut y_dest = BOARD_HEIGHT - 3;
+                    for y in (0..BOARD_HEIGHT - 2).rev() {
+                        let mut row_count = 0;
+                        for x in 2..BOARD_WIDTH - 2 {
+                            if self.board[x][y] == TileType::Base {
+                                row_count += 1;
+                            }
+                        }
 
-                // Clear out the piece so we don't move it down with
-                // the base pieces.  We re-draw it at the start of the
-                // draw method.
-                plot_tet(&mut self.board, self.piece, TileType::Blank);
-                // update score XXX after counting full rows
+                        if row_count == 10 {
+                            self.score += 1;
+                            continue;
+                        }
 
-                // Start from the bottom and work our way up.
-                // The destination Y always starts at the highest valid
-                // valid Y we can have pieces at.
-                // We walk the array from the bottom up.
-                let mut y_dest = BOARD_HEIGHT - 3;
-                for y in (0..BOARD_HEIGHT - 2).rev() {
-                    let mut row_count = 0;
-                    for x in 2..BOARD_WIDTH - 2 {
-                        if self.board[x][y] == TileType::Base {
-                            row_count += 1;
+                        // Move the source y to the current y.
+                        for x in 2..BOARD_WIDTH - 2 {
+                            self.board[x][y_dest] = self.board[x][y];
+                        }
+
+                        y_dest -= 1;
+                    }
+                    // Clear out any rows left at the top
+                    for y in 0..=y_dest {
+                        for x in 2..BOARD_WIDTH - 2 {
+                            self.board[x][y] = TileType::Blank;
                         }
                     }
-                    if row_count == 10 {
-                        continue;
-                    }
-
-                    // Move the source y to the current y.
-                    for x in 2..BOARD_WIDTH - 2 {
-                        self.board[x][y_dest] = self.board[x][y];
-                    }
-
-                    y_dest -= 1;
+                    // Now make the new piece.
+                    self.board_state = place_new_piece(&mut self.board,
+                                                       &mut self.piece);
                 }
-                // Clear out any rows left at the top
-                for y in 0..=y_dest {
-                    for x in 2..BOARD_WIDTH - 2 {
-                        self.board[x][y] = TileType::Blank;
+                BoardState::Paused => (),
+                BoardState::Over => (),
+                BoardState::Moving => {
+                    if !move_tet_down(&mut self.board, &mut self.piece) {
+                        println!("Piece has reached the bottom");
+                        self.board_state = convert_and_check(&mut self.board, &mut self.piece);
                     }
-                    println!("assign [x][{}] to blank", y);
                 }
-                self.board_state = BoardState::Moving;
-            }
-            else if self.board_state == BoardState::Paused {
-                ()
-            }
-            else if !move_tet_down(&mut self.board, &mut self.piece) {
-                println!("Piece has reached the bottom");
-                self.board_state = convert_and_check(&mut self.board, &mut self.piece);
             }
         }
         Ok(())
@@ -627,6 +649,7 @@ impl EventHandler for MainState {
                     if self.board_state == BoardState::Paused {
                         self.board_state = BoardState::Moving;
                     } else {
+                        // Don't pause if game over...
                         self.board_state = BoardState::Paused;
                     }
                 }
@@ -658,7 +681,6 @@ impl EventHandler for MainState {
                     } else {
                         self.piece.x += 1;
                     }
-                    // move_tet_left(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::D => {
                     self.piece.x += 1;
@@ -666,11 +688,9 @@ impl EventHandler for MainState {
                         self.piece.x -= 1;
                         plot_tet(&mut self.board, self.piece, TileType::Blank);
                         self.piece.x += 1;
-                        // Move down successful
                     } else {
                         self.piece.x -= 1;
                     }
-                    // move_tet_right(&mut self.board, &mut self.piece);
                 }
                 input::keyboard::KeyCode::S => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
@@ -713,13 +733,15 @@ impl EventHandler for MainState {
 
         // Text
         let text = graphics::Text::new(format!("Rotation:{}", self.piece.rotation));
-        graphics::draw(ctx, &text, (Point2::new(20.0, 20.0), graphics::WHITE))?;
+        graphics::draw(ctx, &text, (Point2::new(10.0, 20.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("x:{}", self.piece.x));
-        graphics::draw(ctx, &text, (Point2::new(20.0, 40.0), graphics::WHITE))?;
+        graphics::draw(ctx, &text, (Point2::new(10.0, 40.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("y:{}", self.piece.y));
-        graphics::draw(ctx, &text, (Point2::new(20.0, 60.0), graphics::WHITE))?;
+        graphics::draw(ctx, &text, (Point2::new(10.0, 60.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("Board state:{:#?}", self.board_state));
         graphics::draw(ctx, &text, (Point2::new(10.0, 80.0), graphics::WHITE))?;
+        let text = graphics::Text::new(format!("score:{}", self.score));
+        graphics::draw(ctx, &text, (Point2::new(10.0, 100.0), graphics::WHITE))?;
 
         // The board grid
         //
@@ -753,7 +775,11 @@ impl EventHandler for MainState {
             self.board[x][BOARD_HEIGHT - 2] = TileType::Border;
         }
 
-        plot_tet(&mut self.board, self.piece, TileType::Tet);
+        // When clearing, the piece location has become base, so
+        // don't draw anything.
+        if self.board_state != BoardState::Clearing {
+            plot_tet(&mut self.board, self.piece, TileType::Tet);
+        }
 
         // Draw lines for board
         for (py, y) in (0..520).step_by(20).enumerate() {
