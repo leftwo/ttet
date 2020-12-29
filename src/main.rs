@@ -37,13 +37,16 @@ impl Distribution<Tetrominoes> for Standard {
     }
 }
 
+// We use a 2d array (basically) to hold the board state and to know
+// where to draw the pieces, the base (pieces that hit the floor) and
+// the borders of the playing field.
 // The visible board size is 10x20. We have additional space in the
 // array for reasons that involve how we plot the tetrominoes and
 // translate their x,y location when plotting on the board.
 const BOARD_HEIGHT: usize = 26;
 const BOARD_WIDTH: usize = 14;
 
-// Each board square
+// Each board square can be one of these choices.
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TileType {
     Border,
@@ -61,17 +64,22 @@ struct Piece {
 }
 
 // Board state is used to indicate the different states that the
-// board can be in during game play.
-// Moving: The normal sate of things, the player can rotate
+// board can be in during game play.  Specific states will change how
+// things are displayed and what movement is allowed.
+//
+// Moving: The normal state of things, the player can rotate
 // pieces, and pieces drop at every interval.
-// Clearing: we hold the board for one interval during
-// which a completed row is blanked out.  At the end of Clearing
-// state, the pieces above a gap fall to fill the gap created.
+//
+// Clearing: We freeze the board for one interval during which a
+// completed row is blanked out.  At the end of Clearing state, the
+// pieces above a cleared row fall to fill the empty rows.
+//
 // Paused: The player has requested a pause, no falling
-// or rotation is allowed.
+// or rotation is allowed.  The piece holds at its current location
+// and no bounds checking is performed.
+//
 // Over: The attempt to place a new piece at the top of the board
-// has failed, meaning there is a base piece preventing it, which
-// indicates the game is now over.
+// has failed, meaning at least one square is occupied already.
 #[derive(Debug, PartialEq)]
 enum BoardState {
     Moving,
@@ -471,8 +479,9 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 }
 
 // Call this when the active piece has hit something below it and can move
-// down no further.  We convert the piece to base type, then we check to
-// see if any rows have been filled.
+// down no further.  We convert the squares the piece contained to the base
+// type, then we check to see if any rows have been filled.
+//
 // A filled row,       return BoardState::Clearing
 // No filled rows,     return BoardState::Moving (but see below)
 //
@@ -495,9 +504,10 @@ fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece:
             }
         }
         if row_count == 10 {
-            // We have at least one full row, go ahead
-            // and tell the caller the new state.  We
-            // have nothing more to do here.
+            // We have at least one full row, go ahead and tell the caller the
+            // new state.  We don't care how many rows are full, one is
+            // enough to know the board state is changing to clearing and
+            // we can return now.
             println!("Found row {} is full", y);
             return BoardState::Clearing;
         }
@@ -552,6 +562,7 @@ struct MainState {
     piece: Piece,
     board_state: BoardState,
     score: u32,
+    speed: u8,
 }
 
 impl MainState {
@@ -567,6 +578,7 @@ impl MainState {
             piece,
             board_state: BoardState::Moving,
             score: 0,
+            speed: 1,
         };
         Ok(s)
     }
@@ -574,12 +586,11 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        const DESIRED_FPS: u32 = 1;
 
         if input::keyboard::is_key_pressed(ctx, KeyCode::Q) {
             println!("quit");
         }
-        while timer::check_update_time(ctx, DESIRED_FPS) {
+        while timer::check_update_time(ctx, self.speed.into()) {
             match self.board_state {
                 BoardState::Clearing => {
                     // Once we have done one cycle clear, we then resume
@@ -707,6 +718,16 @@ impl EventHandler for MainState {
                     self.board_state = convert_and_check(&mut self.board,
                                                         &mut self.piece);
                 }
+                input::keyboard::KeyCode::Y => {
+                    if self.speed > 1 {
+                        self.speed -= 1;
+                    }
+                }
+                input::keyboard::KeyCode::U => {
+                    if self.speed < 255 {
+                        self.speed += 1;
+                    }
+                }
                 input::keyboard::KeyCode::X => {
                     plot_tet(&mut self.board, self.piece, TileType::Blank);
                     self.piece.y -= 1;
@@ -742,6 +763,8 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &text, (Point2::new(10.0, 80.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("score:{}", self.score));
         graphics::draw(ctx, &text, (Point2::new(10.0, 100.0), graphics::WHITE))?;
+        let text = graphics::Text::new(format!("speed:{}", self.speed));
+        graphics::draw(ctx, &text, (Point2::new(10.0, 120.0), graphics::WHITE))?;
 
         // The board grid
         //
