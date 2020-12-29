@@ -557,12 +557,25 @@ fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mu
     false
 }
 
+// Scoring formula, Original NES, based on lines
+// cleared and current level:
+fn get_score(cleared: u32, level: u32) -> u32 {
+    assert!(cleared > 0 && cleared < 5);
+    match cleared {
+        1 => 40 * (level + 1),
+        2 => 100 * (level + 1),
+        3 => 300 * (level + 1),
+        _ => 1200 * (level + 1),
+    }
+}
+
 struct MainState {
     board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
     piece: Piece,
     board_state: BoardState,
     score: u32,
-    speed: u8,
+    level: u32,
+    lines: u32,
 }
 
 impl MainState {
@@ -578,7 +591,8 @@ impl MainState {
             piece,
             board_state: BoardState::Moving,
             score: 0,
-            speed: 1,
+            level: 0,
+            lines: 0,
         };
         Ok(s)
     }
@@ -590,7 +604,7 @@ impl EventHandler for MainState {
         if input::keyboard::is_key_pressed(ctx, KeyCode::Q) {
             println!("quit");
         }
-        while timer::check_update_time(ctx, self.speed.into()) {
+        while timer::check_update_time(ctx, self.level + 1) {
             match self.board_state {
                 BoardState::Clearing => {
                     // Once we have done one cycle clear, we then resume
@@ -602,6 +616,7 @@ impl EventHandler for MainState {
                     // valid Y we can have pieces at.
                     // We walk the array from the bottom up.
                     let mut y_dest = BOARD_HEIGHT - 3;
+                    let mut cleared = 0;
                     for y in (0..BOARD_HEIGHT - 2).rev() {
                         let mut row_count = 0;
                         for x in 2..BOARD_WIDTH - 2 {
@@ -611,7 +626,7 @@ impl EventHandler for MainState {
                         }
 
                         if row_count == 10 {
-                            self.score += 1;
+                            cleared += 1;
                             continue;
                         }
 
@@ -628,6 +643,14 @@ impl EventHandler for MainState {
                             self.board[x][y] = TileType::Blank;
                         }
                     }
+
+                    self.lines += cleared;
+                    if self.lines >= 10 {
+                        self.lines = 0;
+                        self.level += 1;
+                    }
+                    self.score += get_score(cleared, self.level);
+
                     // Now make the new piece.
                     self.board_state = place_new_piece(&mut self.board,
                                                        &mut self.piece);
@@ -684,13 +707,17 @@ impl EventHandler for MainState {
                     }
                 }
                 input::keyboard::KeyCode::A => {
-                    self.piece.x -= 1;
-                    if validate_move(self.board, self.piece) {
-                        self.piece.x += 1;
-                        plot_tet(&mut self.board, self.piece, TileType::Blank);
+                    // The I piece has a rotation that could have an x value
+                    // of zero, so we have to prevent it underflowing
+                    if self.piece.x > 0 {
                         self.piece.x -= 1;
-                    } else {
-                        self.piece.x += 1;
+                        if validate_move(self.board, self.piece) {
+                            self.piece.x += 1;
+                            plot_tet(&mut self.board, self.piece, TileType::Blank);
+                            self.piece.x -= 1;
+                        } else {
+                            self.piece.x += 1;
+                        }
                     }
                 }
                 input::keyboard::KeyCode::D => {
@@ -719,13 +746,13 @@ impl EventHandler for MainState {
                                                         &mut self.piece);
                 }
                 input::keyboard::KeyCode::Y => {
-                    if self.speed > 1 {
-                        self.speed -= 1;
+                    if self.level > 1 {
+                        self.level -= 1;
                     }
                 }
                 input::keyboard::KeyCode::U => {
-                    if self.speed < 255 {
-                        self.speed += 1;
+                    if self.level < 255 {
+                        self.level += 1;
                     }
                 }
                 input::keyboard::KeyCode::X => {
@@ -763,8 +790,10 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &text, (Point2::new(10.0, 80.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("score:{}", self.score));
         graphics::draw(ctx, &text, (Point2::new(10.0, 100.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("speed:{}", self.speed));
+        let text = graphics::Text::new(format!("level:{}", self.level));
         graphics::draw(ctx, &text, (Point2::new(10.0, 120.0), graphics::WHITE))?;
+        let text = graphics::Text::new(format!("lines:{}", self.lines));
+        graphics::draw(ctx, &text, (Point2::new(10.0, 140.0), graphics::WHITE))?;
 
         // The board grid
         //
