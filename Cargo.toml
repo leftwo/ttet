@@ -10,3 +10,4 @@ edition = "2018"
 rand = "0.7"
 ggez = "0.5.1"
 cgmath = { version = "0.17", features = ["mint"]}
+queues = "1.0.0"
