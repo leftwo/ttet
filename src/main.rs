@@ -112,16 +112,12 @@ fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
 // those places on the board.  Return true if it is possible,
 // false if it is not possible.
 fn check_points(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], ptc: Vec<(usize, usize)>) -> bool {
-    // print!("Check points");
     for pt in ptc.iter() {
-        // print!(" {},{}", pt.0, pt.1);
         if board[pt.0][pt.1] == TileType::Base
             || board[pt.0][pt.1] == TileType::Border {
-            // println!(" no");
             return false;
         }
     }
-    // println!(" yes");
     true
 }
 
@@ -528,6 +524,8 @@ fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
                    piece: &mut Piece) -> BoardState {
     let mut res = BoardState::Moving;
 
+    // ZZZ We need to clear out the previous piece from
+    // the next window before we pop this off the top
     (*piece).tet_type = piece_queue.next();
     if (*piece).tet_type == Tetrominoes::I {
         (*piece).rotation = 1;
@@ -620,6 +618,7 @@ impl TetQueue {
 
 struct MainState {
     board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    next_board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
     piece: Piece,
     piece_queue: TetQueue,
     board_state: BoardState,
@@ -641,6 +640,7 @@ impl MainState {
 
         let s = MainState {
             board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
+            next_board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
             piece,
             piece_queue: q,
             board_state: BoardState::Moving,
@@ -714,7 +714,6 @@ impl EventHandler for MainState {
                 BoardState::Over => (),
                 BoardState::Moving => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
-                        println!("Piece has reached the bottom");
                         self.board_state =
                                 convert_and_check(&mut self.board,
                                                   &mut self.piece_queue,
@@ -849,28 +848,27 @@ impl EventHandler for MainState {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
+        let next = self.piece_queue.peek();
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Text
-        let text = graphics::Text::new(format!("Rotation:{}", self.piece.rotation));
-        graphics::draw(ctx, &text, (Point2::new(10.0, 20.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("x:{}", self.piece.x));
-        graphics::draw(ctx, &text, (Point2::new(10.0, 40.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("y:{}", self.piece.y));
+        let text = graphics::Text::new(format!("Board state:{:#?}",
+                                               self.board_state));
         graphics::draw(ctx, &text, (Point2::new(10.0, 60.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("Board state:{:#?}", self.board_state));
+        let text = graphics::Text::new(format!("Score:{}", self.score));
         graphics::draw(ctx, &text, (Point2::new(10.0, 80.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("score:{}", self.score));
+        let text = graphics::Text::new(format!("Lines:{}", self.lines));
         graphics::draw(ctx, &text, (Point2::new(10.0, 100.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("level:{}", self.level));
+        let text = graphics::Text::new(format!("Level:{}", self.level));
         graphics::draw(ctx, &text, (Point2::new(10.0, 120.0), graphics::WHITE))?;
-        let text = graphics::Text::new(format!("lines:{}", self.lines));
+        let text = graphics::Text::new(format!("Next: {:?}", next));
         graphics::draw(ctx, &text, (Point2::new(10.0, 140.0), graphics::WHITE))?;
 
         // The board grid
         //
         // Horizional lines
         let mb = &mut graphics::MeshBuilder::new();
+
         for y in (0..=520).step_by(20) {
             let y = y as f32;
             mb.line(
@@ -889,7 +887,66 @@ impl EventHandler for MainState {
             )?;
         }
 
-        // Draw the border
+        // Draw the horizional lines for the next box
+        for y in (20..=100).step_by(20) {
+            let y = y as f32;
+            mb.line(
+                &[Point2::new(500.0, y), Point2::new(580.0, y)],
+                2.0,
+                Color::new(0.9, 0.9, 0.9, 4.0),
+            )?;
+        }
+        // Draw the vertical lines for the next box
+        for x in (500..=580).step_by(20) {
+            let x = x as f32;
+            mb.line(
+                &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
+                2.0,
+                Color::new(0.9, 0.9, 0.9, 4.0),
+            )?;
+        }
+        let x = 500.0;
+        let y = 20.0;
+        mb.line(
+            &[
+                Point2::new(x + 10.0, y + 2.0),
+                Point2::new(x + 10.0, y + 18.0),
+            ],
+            16.0,
+            Color::new(0.0, 1.0, 1.0, 1.0),
+        )?;
+
+        let next_piece = Piece {
+            tet_type: next,
+            rotation: 0,
+            x: 0,
+            y: 0,
+        };
+        plot_tet(&mut self.next_board, next_piece, TileType::Tet);
+        // Draw content on the next box
+        for (py, y) in (20..100).step_by(20).enumerate() {
+            for (px, x) in (500..580).step_by(20).enumerate() {
+                let x = x as f32;
+                let y = y as f32;
+
+                match self.next_board[px][py] {
+                    TileType::Tet => {
+                        mb.line(
+                            &[
+                                Point2::new(x + 10.0, y + 2.0),
+                                Point2::new(x + 10.0, y + 18.0),
+                            ],
+                            16.0,
+                            Color::new(0.0, 1.0, 1.0, 1.0),
+                        )?;
+                    }
+                    _ => (),
+                }
+            }
+        }
+
+
+        // Draw the border squares
         let fill = Color::new(1.0, 0.0, 0.0, 1.0);
         for y in 0..BOARD_HEIGHT - 1 {
             self.board[1][y] = TileType::Border;
@@ -905,7 +962,7 @@ impl EventHandler for MainState {
             plot_tet(&mut self.board, self.piece, TileType::Tet);
         }
 
-        // Draw lines for board
+        // Draw content on the board
         for (py, y) in (0..520).step_by(20).enumerate() {
             let mut row_count = 0;
             for (px, x) in (200..480).step_by(20).enumerate() {
