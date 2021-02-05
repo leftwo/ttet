@@ -1,12 +1,16 @@
 use ggez::event::{quit, run, EventHandler, KeyCode, KeyMods};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
+use ggez::input;
 use ggez::nalgebra::Point2;
 use ggez::timer;
-use ggez::input;
 use ggez::{Context, GameResult};
-use rand::{ distributions::{Distribution, Standard}, Rng, seq::SliceRandom };
 use queues::*;
+use rand::{
+    distributions::{Distribution, Standard},
+    seq::SliceRandom,
+    Rng,
+};
 
 // The seven different game pieces we use.  Their official name in Tetris
 // is "Tetrominoes".
@@ -95,8 +99,7 @@ fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
         for x in 0..BOARD_WIDTH {
             if board[x][y] == TileType::Base {
                 print!("B");
-            }
-            else if board[x][y] == TileType::Border {
+            } else if board[x][y] == TileType::Border {
                 print!("#");
             } else if board[x][y] == TileType::Tet {
                 print!(".");
@@ -113,8 +116,7 @@ fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
 // false if it is not possible.
 fn check_points(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], ptc: Vec<(usize, usize)>) -> bool {
     for pt in ptc.iter() {
-        if board[pt.0][pt.1] == TileType::Base
-            || board[pt.0][pt.1] == TileType::Border {
+        if board[pt.0][pt.1] == TileType::Base || board[pt.0][pt.1] == TileType::Border {
             return false;
         }
     }
@@ -303,9 +305,7 @@ fn validate_move(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece) -
 // On the given board, draw the shape of the Tetrominoe of
 // the given type in the given rotation.
 // The new_type can be any supported tile type, including blank
-fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-            piece: Piece,
-            new_type: TileType) {
+fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: Piece, new_type: TileType) {
     // We use the piece location and rotation to determine which
     // squares we need to update.
     match piece.tet_type {
@@ -488,12 +488,13 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 // the new piece will fail, in that case the tail call will end up
 // returning BoardState::Over
 //
-fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-                     piece: &mut Piece,
-                     piece_queue: &mut TetQueue,
-                     next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-                     next_piece: &mut Piece) -> BoardState {
-
+fn convert_and_check(
+    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    piece: &mut Piece,
+    piece_queue: &mut TetQueue,
+    next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    next_piece: &mut Piece,
+) -> BoardState {
     // Redraw the piece as a "base" type
     plot_tet(board, *piece, TileType::Base);
 
@@ -522,20 +523,20 @@ fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 // This starts a new piece moving down from the top of the
 // board.  We also check for game over if the new piece has
 // no empty squares to be placed in.
-fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-                   piece: &mut Piece,
-                   piece_queue: &mut TetQueue,
-                   next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
-                   next_piece: &mut Piece) -> BoardState {
-
+fn place_new_piece(
+    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    piece: &mut Piece,
+    piece_queue: &mut TetQueue,
+    next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    next_piece: &mut Piece,
+) -> BoardState {
     let mut res = BoardState::Moving;
 
     (*piece).tet_type = piece_queue.next();
     if (*piece).tet_type == Tetrominoes::I {
         (*piece).rotation = 1;
         (*piece).y = 0;
-    }
-    else {
+    } else {
         (*piece).rotation = 0;
         (*piece).y = 2;
     }
@@ -556,7 +557,6 @@ fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 // Try to move tet down.  If it works, then return true.
 // If the move is not valid, then return false.
 fn move_tet_down(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH], piece: &mut Piece) -> bool {
-
     (*piece).y += 1;
     if validate_move(*board, *piece) {
         (*piece).y -= 1;
@@ -596,20 +596,22 @@ struct TetQueue {
 impl TetQueue {
     fn new() -> TetQueue {
         let mut q: Queue<Tetrominoes> = queue![];
-        let mut x = [Tetrominoes::I,
-                     Tetrominoes::O,
-                     Tetrominoes::T,
-                     Tetrominoes::J,
-                     Tetrominoes::L,
-                     Tetrominoes::S,
-                     Tetrominoes::Z,];
+        let mut x = [
+            Tetrominoes::I,
+            Tetrominoes::O,
+            Tetrominoes::T,
+            Tetrominoes::J,
+            Tetrominoes::L,
+            Tetrominoes::S,
+            Tetrominoes::Z,
+        ];
 
         let mut rng = rand::thread_rng();
         x.shuffle(&mut rng);
         for tet in &x {
             q.add(*tet).unwrap();
         }
-        TetQueue { q, x, rng, }
+        TetQueue { q, x, rng }
     }
     fn next(&mut self) -> Tetrominoes {
         if self.q.size() <= 1 {
@@ -687,7 +689,6 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-
         if input::keyboard::is_key_pressed(ctx, KeyCode::Q) {
             println!("quit");
         }
@@ -739,22 +740,25 @@ impl EventHandler for MainState {
                     self.score += get_score(cleared, self.level);
 
                     // Now make the new piece.
-                    self.board_state = place_new_piece(&mut self.board,
-                                                       &mut self.piece,
-                                                       &mut self.piece_queue,
-                                                       &mut self.next_board,
-                                                       &mut self.next_piece);
+                    self.board_state = place_new_piece(
+                        &mut self.board,
+                        &mut self.piece,
+                        &mut self.piece_queue,
+                        &mut self.next_board,
+                        &mut self.next_piece,
+                    );
                 }
                 BoardState::Paused => (),
                 BoardState::Over => (),
                 BoardState::Moving => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
-                        self.board_state =
-                                convert_and_check(&mut self.board,
-                                                  &mut self.piece,
-                                                  &mut self.piece_queue,
-                                                  &mut self.next_board,
-                                                  &mut self.next_piece);
+                        self.board_state = convert_and_check(
+                            &mut self.board,
+                            &mut self.piece,
+                            &mut self.piece_queue,
+                            &mut self.next_board,
+                            &mut self.next_piece,
+                        );
                         // Should we always set new piece here?? ZZZ
                     }
                 }
@@ -797,8 +801,7 @@ impl EventHandler for MainState {
                         self.piece.rotation = original_rotation;
                         plot_tet(&mut self.board, self.piece, TileType::Blank);
                         self.piece.rotation = new_rotation;
-                    }
-                    else {
+                    } else {
                         self.piece.rotation = original_rotation;
                     }
                 }
@@ -831,11 +834,13 @@ impl EventHandler for MainState {
                 // Single down
                 input::keyboard::KeyCode::S => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
-                        self.board_state = convert_and_check(&mut self.board,
-                                                         &mut self.piece,
-                                                         &mut self.piece_queue,
-                                                         &mut self.next_board,
-                                                         &mut self.next_piece);
+                        self.board_state = convert_and_check(
+                            &mut self.board,
+                            &mut self.piece,
+                            &mut self.piece_queue,
+                            &mut self.next_board,
+                            &mut self.next_piece,
+                        );
                     }
                 }
                 // All the way down
@@ -846,22 +851,26 @@ impl EventHandler for MainState {
                         // let the timer run out (so we can slide to the side)
                         // before making final the piece.
                     }
-                    self.board_state = convert_and_check(&mut self.board,
-                                                         &mut self.piece,
-                                                         &mut self.piece_queue,
-                                                         &mut self.next_board,
-                                                         &mut self.next_piece);
+                    self.board_state = convert_and_check(
+                        &mut self.board,
+                        &mut self.piece,
+                        &mut self.piece_queue,
+                        &mut self.next_board,
+                        &mut self.next_piece,
+                    );
                 }
                 // Begin debug commands
                 input::keyboard::KeyCode::Z => {
                     println!("{:#?}", self.board);
                 }
                 input::keyboard::KeyCode::C => {
-                    self.board_state = convert_and_check(&mut self.board,
-                                                         &mut self.piece,
-                                                         &mut self.piece_queue,
-                                                         &mut self.next_board,
-                                                         &mut self.next_piece);
+                    self.board_state = convert_and_check(
+                        &mut self.board,
+                        &mut self.piece,
+                        &mut self.piece_queue,
+                        &mut self.next_board,
+                        &mut self.next_piece,
+                    );
                 }
                 input::keyboard::KeyCode::Y => {
                     if self.level > 1 {
@@ -898,8 +907,7 @@ impl EventHandler for MainState {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Text
-        let text = graphics::Text::new(format!("Board state:{:#?}",
-                                               self.board_state));
+        let text = graphics::Text::new(format!("Board state:{:#?}", self.board_state));
         graphics::draw(ctx, &text, (Point2::new(10.0, 60.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("Score:{}", self.score));
         graphics::draw(ctx, &text, (Point2::new(10.0, 80.0), graphics::WHITE))?;
@@ -1068,7 +1076,6 @@ impl EventHandler for MainState {
 }
 
 pub fn main() -> GameResult {
-
     let cb = ggez::ContextBuilder::new("drawing", "ggez");
 
     let (ctx, events_loop) = &mut cb.build()?;
