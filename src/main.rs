@@ -104,7 +104,7 @@ fn print_board(board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH]) {
                 print!(" ");
             }
         }
-        println!("");
+        println!();
     }
 }
 
@@ -487,9 +487,13 @@ fn plot_tet(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 // If we are not clearing rows, then it's possible that the placement of
 // the new piece will fail, in that case the tail call will end up
 // returning BoardState::Over
+//
 fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+                     piece: &mut Piece,
                      piece_queue: &mut TetQueue,
-                     piece: &mut Piece) -> BoardState {
+                     next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+                     next_piece: &mut Piece) -> BoardState {
+
     // Redraw the piece as a "base" type
     plot_tet(board, *piece, TileType::Base);
 
@@ -506,26 +510,26 @@ fn convert_and_check(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
             // new state.  We don't care how many rows are full, one is
             // enough to know the board state is changing to clearing and
             // we can return now.
-            println!("Found row {} is full", y);
             return BoardState::Clearing;
         }
     }
 
     // We can go ahead with placing a new piece now, return the
     // result of this call
-    place_new_piece(board, piece_queue, piece)
+    place_new_piece(board, piece, piece_queue, next_board, next_piece)
 }
 
 // This starts a new piece moving down from the top of the
 // board.  We also check for game over if the new piece has
 // no empty squares to be placed in.
 fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+                   piece: &mut Piece,
                    piece_queue: &mut TetQueue,
-                   piece: &mut Piece) -> BoardState {
+                   next_board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+                   next_piece: &mut Piece) -> BoardState {
+
     let mut res = BoardState::Moving;
 
-    // ZZZ We need to clear out the previous piece from
-    // the next window before we pop this off the top
     (*piece).tet_type = piece_queue.next();
     if (*piece).tet_type == Tetrominoes::I {
         (*piece).rotation = 1;
@@ -536,6 +540,11 @@ fn place_new_piece(board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
         (*piece).y = 2;
     }
     (*piece).x = 6;
+
+    // Clear the old and and fill the next_board array with the next piece
+    plot_tet(next_board, *next_piece, TileType::Blank);
+    *next_piece = set_next_piece(piece_queue.peek());
+    plot_tet(next_board, *next_piece, TileType::Tet);
 
     if !validate_move(*board, *piece) {
         println!("Game Over");
@@ -617,14 +626,36 @@ impl TetQueue {
 }
 
 struct MainState {
+    // The main game board
     board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+    // The place where we render the next piece
     next_board: [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
     piece: Piece,
+    next_piece: Piece,
     piece_queue: TetQueue,
     board_state: BoardState,
     score: u32,
     level: u32,
     lines: u32,
+}
+
+fn set_next_piece(next_tet: Tetrominoes) -> Piece {
+    let mut x = 1;
+    let mut y = 1;
+    let mut rotation = 0;
+
+    if next_tet == Tetrominoes::I {
+        x = 0;
+        y = 0;
+        rotation = 1;
+    };
+    let next_piece = Piece {
+        tet_type: next_tet,
+        rotation,
+        x,
+        y,
+    };
+    next_piece
 }
 
 impl MainState {
@@ -637,11 +668,13 @@ impl MainState {
             x: 6,
             y: 0,
         };
+        let next_piece = set_next_piece(q.peek());
 
         let s = MainState {
             board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
             next_board: [[TileType::Blank; BOARD_HEIGHT]; BOARD_WIDTH],
             piece,
+            next_piece,
             piece_queue: q,
             board_state: BoardState::Moving,
             score: 0,
@@ -707,8 +740,10 @@ impl EventHandler for MainState {
 
                     // Now make the new piece.
                     self.board_state = place_new_piece(&mut self.board,
+                                                       &mut self.piece,
                                                        &mut self.piece_queue,
-                                                       &mut self.piece);
+                                                       &mut self.next_board,
+                                                       &mut self.next_piece);
                 }
                 BoardState::Paused => (),
                 BoardState::Over => (),
@@ -716,8 +751,11 @@ impl EventHandler for MainState {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
                         self.board_state =
                                 convert_and_check(&mut self.board,
+                                                  &mut self.piece,
                                                   &mut self.piece_queue,
-                                                  &mut self.piece);
+                                                  &mut self.next_board,
+                                                  &mut self.next_piece);
+                        // Should we always set new piece here?? ZZZ
                     }
                 }
             }
@@ -794,18 +832,25 @@ impl EventHandler for MainState {
                 input::keyboard::KeyCode::S => {
                     if !move_tet_down(&mut self.board, &mut self.piece) {
                         self.board_state = convert_and_check(&mut self.board,
-                                                        &mut self.piece_queue,
-                                                        &mut self.piece);
+                                                         &mut self.piece,
+                                                         &mut self.piece_queue,
+                                                         &mut self.next_board,
+                                                         &mut self.next_piece);
                     }
                 }
                 // All the way down
                 input::keyboard::KeyCode::Space => {
                     while move_tet_down(&mut self.board, &mut self.piece) {
                         println!("Down");
+                        // XXX This needs to not do the convert and check yet,
+                        // let the timer run out (so we can slide to the side)
+                        // before making final the piece.
                     }
                     self.board_state = convert_and_check(&mut self.board,
-                                                        &mut self.piece_queue,
-                                                        &mut self.piece);
+                                                         &mut self.piece,
+                                                         &mut self.piece_queue,
+                                                         &mut self.next_board,
+                                                         &mut self.next_piece);
                 }
                 // Begin debug commands
                 input::keyboard::KeyCode::Z => {
@@ -813,8 +858,10 @@ impl EventHandler for MainState {
                 }
                 input::keyboard::KeyCode::C => {
                     self.board_state = convert_and_check(&mut self.board,
-                                                        &mut self.piece_queue,
-                                                        &mut self.piece);
+                                                         &mut self.piece,
+                                                         &mut self.piece_queue,
+                                                         &mut self.next_board,
+                                                         &mut self.next_piece);
                 }
                 input::keyboard::KeyCode::Y => {
                     if self.level > 1 {
@@ -848,7 +895,6 @@ impl EventHandler for MainState {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let next = self.piece_queue.peek();
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Text
@@ -861,12 +907,12 @@ impl EventHandler for MainState {
         graphics::draw(ctx, &text, (Point2::new(10.0, 100.0), graphics::WHITE))?;
         let text = graphics::Text::new(format!("Level:{}", self.level));
         graphics::draw(ctx, &text, (Point2::new(10.0, 120.0), graphics::WHITE))?;
+        let next = self.piece_queue.peek();
         let text = graphics::Text::new(format!("Next: {:?}", next));
         graphics::draw(ctx, &text, (Point2::new(10.0, 140.0), graphics::WHITE))?;
 
         // The board grid
-        //
-        // Horizional lines
+        // Horizional lines for the playfield
         let mb = &mut graphics::MeshBuilder::new();
 
         for y in (0..=520).step_by(20) {
@@ -877,7 +923,7 @@ impl EventHandler for MainState {
                 Color::new(0.9, 0.9, 0.9, 4.0),
             )?;
         }
-        // Draw the vertical lines
+        // Draw the vertical lines for the playfield
         for x in (200..=480).step_by(20) {
             let x = x as f32;
             mb.line(
@@ -886,65 +932,6 @@ impl EventHandler for MainState {
                 Color::new(0.9, 0.9, 0.9, 4.0),
             )?;
         }
-
-        // Draw the horizional lines for the next box
-        for y in (20..=100).step_by(20) {
-            let y = y as f32;
-            mb.line(
-                &[Point2::new(500.0, y), Point2::new(580.0, y)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-        // Draw the vertical lines for the next box
-        for x in (500..=580).step_by(20) {
-            let x = x as f32;
-            mb.line(
-                &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-        let x = 500.0;
-        let y = 20.0;
-        mb.line(
-            &[
-                Point2::new(x + 10.0, y + 2.0),
-                Point2::new(x + 10.0, y + 18.0),
-            ],
-            16.0,
-            Color::new(0.0, 1.0, 1.0, 1.0),
-        )?;
-
-        let next_piece = Piece {
-            tet_type: next,
-            rotation: 0,
-            x: 0,
-            y: 0,
-        };
-        plot_tet(&mut self.next_board, next_piece, TileType::Tet);
-        // Draw content on the next box
-        for (py, y) in (20..100).step_by(20).enumerate() {
-            for (px, x) in (500..580).step_by(20).enumerate() {
-                let x = x as f32;
-                let y = y as f32;
-
-                match self.next_board[px][py] {
-                    TileType::Tet => {
-                        mb.line(
-                            &[
-                                Point2::new(x + 10.0, y + 2.0),
-                                Point2::new(x + 10.0, y + 18.0),
-                            ],
-                            16.0,
-                            Color::new(0.0, 1.0, 1.0, 1.0),
-                        )?;
-                    }
-                    _ => (),
-                }
-            }
-        }
-
 
         // Draw the border squares
         let fill = Color::new(1.0, 0.0, 0.0, 1.0);
@@ -1025,6 +1012,47 @@ impl EventHandler for MainState {
                             Color::new(0.1, 0.2, 0.3, 1.0),
                         )?;
                     }
+                }
+            }
+        }
+
+        // Draw the horizional lines for the next box
+        for y in (20..=100).step_by(20) {
+            let y = y as f32;
+            mb.line(
+                &[Point2::new(500.0, y), Point2::new(580.0, y)],
+                2.0,
+                Color::new(0.9, 0.9, 0.9, 4.0),
+            )?;
+        }
+        // Draw the vertical lines for the next box
+        for x in (500..=580).step_by(20) {
+            let x = x as f32;
+            mb.line(
+                &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
+                2.0,
+                Color::new(0.9, 0.9, 0.9, 4.0),
+            )?;
+        }
+
+        // When we add a game start button, we can do this less
+        // frequently.  The only time it needs to change is on start
+        // and when a piece has reached the bottom.  XXX
+        plot_tet(&mut self.next_board, self.next_piece, TileType::Tet);
+        // Draw content in the next box
+        for (py, y) in (20..100).step_by(20).enumerate() {
+            for (px, x) in (500..580).step_by(20).enumerate() {
+                let x = x as f32;
+                let y = y as f32;
+                if self.next_board[px][py] == TileType::Tet {
+                    mb.line(
+                        &[
+                            Point2::new(x + 10.0, y + 2.0),
+                            Point2::new(x + 10.0, y + 18.0),
+                        ],
+                        16.0,
+                        Color::new(0.0, 1.0, 1.0, 1.0),
+                    )?;
                 }
             }
         }
