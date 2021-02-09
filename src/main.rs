@@ -660,6 +660,168 @@ fn set_next_piece(next_tet: Tetrominoes) -> Piece {
     next_piece
 }
 
+fn draw_next_board_grid(mb: &mut graphics::MeshBuilder) -> GameResult {
+    // Draw the horizional lines for the next box
+    for y in (20..=100).step_by(20) {
+        let y = y as f32;
+        mb.line(
+            &[Point2::new(500.0, y), Point2::new(600.0, y)],
+            2.0,
+            Color::new(0.9, 0.9, 0.9, 4.0),
+        )?;
+    }
+    // Draw the vertical lines for the next box
+    for x in (500..=600).step_by(20) {
+        let x = x as f32;
+        mb.line(
+            &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
+            2.0,
+            Color::new(0.9, 0.9, 0.9, 4.0),
+        )?;
+    }
+    Ok(())
+}
+
+fn draw_next_board_contents(
+    mb: &mut graphics::MeshBuilder,
+    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+) -> GameResult {
+    // Draw content in the next box
+    for (py, y) in (20..100).step_by(20).enumerate() {
+        for (px, x) in (500..580).step_by(20).enumerate() {
+            let x = x as f32;
+            let y = y as f32;
+            if board[px][py] == TileType::Tet {
+                mb.line(
+                    &[
+                        Point2::new(x + 10.0, y + 2.0),
+                        Point2::new(x + 10.0, y + 18.0),
+                    ],
+                    16.0,
+                    Color::new(0.0, 1.0, 1.0, 1.0),
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn draw_board_grid(
+    mb: &mut graphics::MeshBuilder,
+    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+) -> GameResult {
+    for y in (0..=500).step_by(20) {
+        let y = y as f32;
+        mb.line(
+            &[Point2::new(220.0, y), Point2::new(460.0, y)],
+            2.0,
+            Color::new(0.9, 0.9, 0.9, 4.0),
+        )?;
+    }
+    // Draw the vertical lines for the playfield
+    for x in (220..=460).step_by(20) {
+        let x = x as f32;
+        mb.line(
+            &[Point2::new(x, 0.0), Point2::new(x, 500.0)],
+            2.0,
+            Color::new(0.9, 0.9, 0.9, 4.0),
+        )?;
+    }
+
+    // Draw the border squares
+    for y in 0..BOARD_HEIGHT - 1 {
+        board[1][y] = TileType::Border;
+        board[12][y] = TileType::Border;
+    }
+    for x in 1..BOARD_WIDTH - 2 {
+        board[x][BOARD_HEIGHT - 2] = TileType::Border;
+    }
+    Ok(())
+}
+
+fn draw_board_contents(
+    mb: &mut graphics::MeshBuilder,
+    board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
+) -> GameResult {
+    // Draw content on the board
+    // We are using two values here per loop.  The px and py are the index
+    // into the board array.  The x and y are the actual locations on the
+    // screen where things will be drawn.
+    // board array.
+    //
+    // This is wider than the board grid we drew above because there is a portion
+    // of the board grid that we don't display or ever expect to find a valid
+    // tet placement.  This additional width is due to rotation of the I tet.  We
+    // need to allow for the 4x4 square that could have an I tet be a valid
+    // positive integer.
+    for (py, y) in (0..520).step_by(20).enumerate() {
+        let mut row_count = 0;
+        for (px, x) in (200..480).step_by(20).enumerate() {
+            let x = x as f32;
+            let y = y as f32;
+
+            // XXX We should draw the border once at the start
+            // of the program and not have to re-draw it each time.
+            // Assuming I can figure out how to leave drawings behind
+            // instead of wiping the screen each time.
+            match board[px][py] {
+                TileType::Border => {
+                    mb.line(
+                        &[
+                            Point2::new(x + 10.0, y + 2.0),
+                            Point2::new(x + 10.0, y + 18.0),
+                        ],
+                        16.0,
+                        Color::new(1.0, 0.0, 0.0, 1.0),
+                    )?;
+                }
+                TileType::Tet => {
+                    mb.line(
+                        &[
+                            Point2::new(x + 10.0, y + 2.0),
+                            Point2::new(x + 10.0, y + 18.0),
+                        ],
+                        16.0,
+                        Color::new(0.0, 1.0, 1.0, 1.0),
+                    )?;
+                }
+                TileType::Base => {
+                    row_count += 1;
+                    mb.line(
+                        &[
+                            Point2::new(x + 10.0, y + 2.0),
+                            Point2::new(x + 10.0, y + 18.0),
+                        ],
+                        16.0,
+                        Color::new(0.0, 1.0, 0.5, 1.0),
+                    )?;
+                }
+                _ => (),
+            }
+        }
+        if row_count >= 10 {
+            // Redraw this as a blank, but only the actual
+            // squares that pieces can operate on.
+            for (px, x) in (200..460).step_by(20).enumerate() {
+                let x = x as f32;
+                let y = y as f32;
+                // The following should be asserted
+                if board[px][py] == TileType::Base {
+                    mb.line(
+                        &[
+                            Point2::new(x + 10.0, y + 2.0),
+                            Point2::new(x + 10.0, y + 18.0),
+                        ],
+                        16.0,
+                        Color::new(0.1, 0.2, 0.3, 1.0),
+                    )?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 impl MainState {
     fn new(_ctx: &mut Context) -> GameResult<MainState> {
         let mut q = TetQueue::new();
@@ -923,147 +1085,23 @@ impl EventHandler for MainState {
         // Horizional lines for the playfield
         let mb = &mut graphics::MeshBuilder::new();
 
-        for y in (0..=520).step_by(20) {
-            let y = y as f32;
-            mb.line(
-                &[Point2::new(200.0, y), Point2::new(480.0, y)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-        // Draw the vertical lines for the playfield
-        for x in (200..=480).step_by(20) {
-            let x = x as f32;
-            mb.line(
-                &[Point2::new(x, 0.0), Point2::new(x, 520.0)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-
-        // Draw the border squares
-        let fill = Color::new(1.0, 0.0, 0.0, 1.0);
-        for y in 0..BOARD_HEIGHT - 1 {
-            self.board[1][y] = TileType::Border;
-            self.board[12][y] = TileType::Border;
-        }
-        for x in 1..BOARD_WIDTH - 2 {
-            self.board[x][BOARD_HEIGHT - 2] = TileType::Border;
-        }
-
-        // When clearing, the piece location has become base, so
-        // don't draw anything.
+        draw_board_grid(mb, &mut self.board)?;
+        //
+        // Any board state except for clearing, we plot the tet at its
+        // current coordinates.  When clearing, the piece location has become
+        // base, so don't draw anything.
         if self.board_state != BoardState::Clearing {
             plot_tet(&mut self.board, self.piece, TileType::Tet);
         }
 
-        // Draw content on the board
-        for (py, y) in (0..520).step_by(20).enumerate() {
-            let mut row_count = 0;
-            for (px, x) in (200..480).step_by(20).enumerate() {
-                let x = x as f32;
-                let y = y as f32;
+        draw_board_contents(mb, &mut self.board)?;
 
-                // XXX We should draw the border once at the start
-                // of the program and not have to re-draw it each time.
-                // Assuming I can figure out how to leave drawings behind
-                // instead of wiping the screen each time.
-                match self.board[px][py] {
-                    TileType::Border => {
-                        mb.line(
-                            &[
-                                Point2::new(x + 10.0, y + 2.0),
-                                Point2::new(x + 10.0, y + 18.0),
-                            ],
-                            16.0,
-                            fill,
-                        )?;
-                    }
-                    TileType::Tet => {
-                        mb.line(
-                            &[
-                                Point2::new(x + 10.0, y + 2.0),
-                                Point2::new(x + 10.0, y + 18.0),
-                            ],
-                            16.0,
-                            Color::new(0.0, 1.0, 1.0, 1.0),
-                        )?;
-                    }
-                    TileType::Base => {
-                        row_count += 1;
-                        mb.line(
-                            &[
-                                Point2::new(x + 10.0, y + 2.0),
-                                Point2::new(x + 10.0, y + 18.0),
-                            ],
-                            16.0,
-                            Color::new(0.0, 1.0, 0.5, 1.0),
-                        )?;
-                    }
-                    _ => (),
-                }
-            }
-            if row_count >= 10 {
-                // Redraw this as a blank, but only the actual
-                // squares that pieces can operate on.
-                for (px, x) in (200..460).step_by(20).enumerate() {
-                    let x = x as f32;
-                    let y = y as f32;
-                    // The following should be asserted
-                    if self.board[px][py] == TileType::Base {
-                        mb.line(
-                            &[
-                                Point2::new(x + 10.0, y + 2.0),
-                                Point2::new(x + 10.0, y + 18.0),
-                            ],
-                            16.0,
-                            Color::new(0.1, 0.2, 0.3, 1.0),
-                        )?;
-                    }
-                }
-            }
-        }
-
-        // Draw the horizional lines for the next box
-        for y in (20..=100).step_by(20) {
-            let y = y as f32;
-            mb.line(
-                &[Point2::new(500.0, y), Point2::new(580.0, y)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-        // Draw the vertical lines for the next box
-        for x in (500..=580).step_by(20) {
-            let x = x as f32;
-            mb.line(
-                &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
-                2.0,
-                Color::new(0.9, 0.9, 0.9, 4.0),
-            )?;
-        }
-
+        draw_next_board_grid(mb)?;
         // When we add a game start button, we can do this less
         // frequently.  The only time it needs to change is on start
         // and when a piece has reached the bottom.  XXX
         plot_tet(&mut self.next_board, self.next_piece, TileType::Tet);
-        // Draw content in the next box
-        for (py, y) in (20..100).step_by(20).enumerate() {
-            for (px, x) in (500..580).step_by(20).enumerate() {
-                let x = x as f32;
-                let y = y as f32;
-                if self.next_board[px][py] == TileType::Tet {
-                    mb.line(
-                        &[
-                            Point2::new(x + 10.0, y + 2.0),
-                            Point2::new(x + 10.0, y + 18.0),
-                        ],
-                        16.0,
-                        Color::new(0.0, 1.0, 1.0, 1.0),
-                    )?;
-                }
-            }
-        }
+        draw_next_board_contents(mb, &mut self.next_board)?;
 
         let m = mb.build(ctx)?;
         graphics::draw(ctx, &m, DrawParam::new())?;
