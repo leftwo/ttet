@@ -662,7 +662,7 @@ fn set_next_piece(next_tet: Tetrominoes) -> Piece {
 
 fn draw_next_board_grid(mb: &mut graphics::MeshBuilder) -> GameResult {
     // Draw the horizional lines for the next box
-    for y in (20..=100).step_by(20) {
+    for y in (40..=120).step_by(20) {
         let y = y as f32;
         mb.line(
             &[Point2::new(500.0, y), Point2::new(600.0, y)],
@@ -674,7 +674,7 @@ fn draw_next_board_grid(mb: &mut graphics::MeshBuilder) -> GameResult {
     for x in (500..=600).step_by(20) {
         let x = x as f32;
         mb.line(
-            &[Point2::new(x, 20.0), Point2::new(x, 100.0)],
+            &[Point2::new(x, 40.0), Point2::new(x, 120.0)],
             2.0,
             Color::new(0.9, 0.9, 0.9, 4.0),
         )?;
@@ -687,7 +687,7 @@ fn draw_next_board_contents(
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 ) -> GameResult {
     // Draw content in the next box
-    for (py, y) in (20..100).step_by(20).enumerate() {
+    for (py, y) in (40..120).step_by(20).enumerate() {
         for (px, x) in (500..580).step_by(20).enumerate() {
             let x = x as f32;
             let y = y as f32;
@@ -710,7 +710,7 @@ fn draw_board_grid(
     mb: &mut graphics::MeshBuilder,
     board: &mut [[TileType; BOARD_HEIGHT]; BOARD_WIDTH],
 ) -> GameResult {
-    for y in (0..=500).step_by(20) {
+    for y in (20..=520).step_by(20) {
         let y = y as f32;
         mb.line(
             &[Point2::new(220.0, y), Point2::new(460.0, y)],
@@ -722,13 +722,15 @@ fn draw_board_grid(
     for x in (220..=460).step_by(20) {
         let x = x as f32;
         mb.line(
-            &[Point2::new(x, 0.0), Point2::new(x, 500.0)],
+            &[Point2::new(x, 20.0), Point2::new(x, 520.0)],
             2.0,
             Color::new(0.9, 0.9, 0.9, 4.0),
         )?;
     }
 
     // Draw the border squares
+    // XXX this belongs somewhere else, no need to fill the
+    // grid every time
     for y in 0..BOARD_HEIGHT - 1 {
         board[1][y] = TileType::Border;
         board[12][y] = TileType::Border;
@@ -754,7 +756,7 @@ fn draw_board_contents(
     // tet placement.  This additional width is due to rotation of the I tet.  We
     // need to allow for the 4x4 square that could have an I tet be a valid
     // positive integer.
-    for (py, y) in (0..520).step_by(20).enumerate() {
+    for (py, y) in (20..540).step_by(20).enumerate() {
         let mut row_count = 0;
         for (px, x) in (200..480).step_by(20).enumerate() {
             let x = x as f32;
